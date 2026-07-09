@@ -17,6 +17,52 @@ QtObject {
     property int cpuPillWidth: 82
     property int quickSettingsWidth: 390
     property int quickSettingsEdgeWidth: 96
+    property int musicWorkspaceSpacing: 15
+    property int musicPillWidth: 280
+    property int musicPopupWidth: 760
+    property int musicPopupHeight: 500
+    property int musicPopupMargin: 28
+    property int musicPopupSpacing: 28
+    property int musicPopupRadius: 12
+    property int musicInfoColumnWidth: 324
+    property int musicCoverSize: 250
+    property int musicCoverRadius: 10
+    property int musicCoverX: 37
+    property int musicCoverY: 40
+    property int musicInfoSpacerHeight: 45
+    property int musicInfoSpacing: 8
+    property int musicControlSpacing: 10
+    property int musicProgressHeight: 12
+    property int musicProgressWaveLength: 22
+    property real musicProgressWaveAmplitude: 2.0
+    property real musicProgressKnobRadius: 5.0
+    property int musicPillProgressHeight: 3
+    property int musicPillProgressMargin: 12
+    property int musicPillProgressBottomMargin: 5
+    property int musicPillProgressKnobSize: 7
+    property int musicPillTextMargin: 12
+    property int musicPillTextTopMargin: 3
+    property int musicPillTextBottomMargin: 8
+    property int musicPillTextSpacing: 8
+    property int musicPopupOffsetY: 14
+    property int musicProgressAnimationMs: 120
+    property int musicLyricAnimationMs: 160
+    property int musicLyricRefreshInterval: 2000
+    property int musicPillIconFontSize: 12
+    property int musicPopupFallbackIconFontSize: 34
+    property int musicTitleFontSize: 18
+    property int musicArtistFontSize: 12
+    property int musicTimeFontSize: 11
+    property int musicTimeWidth: 38
+    property int musicControlFontSize: 27
+    property int musicPlayFontSize: 31
+    property int musicLyricActiveFontSize: 22
+    property int musicLyricInactiveFontSize: 19
+    property int musicLyricItemVPadding: 20
+    property int musicLyricMaxEntries: 120
+    property real musicLyricHighlightPosition: 0.25
+    property real musicLyricLineHeight: 1.08
+    property real musicActiveOverlayOpacity: 0.28
     property int barFontSize: 16
     property int archIconFontSize: 14
 }

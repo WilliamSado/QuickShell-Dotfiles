@@ -13,4 +13,10 @@ QtObject {
     property color memoryTextColor: "#FFEAAA"
     property color audioTextColor: "#a4e4fe"
     property color networkTextColor: "#b0f5e5"
+    property color musicCoverFallbackColor: "#2f2631"
+    property color musicPopupBorderColor: "#22ffffff"
+    property color musicProgressTrackColor: "#26ffffff"
+    property color musicPopupProgressTrackColor: "#55ffffff"
+    property color musicDisabledTextColor: "#987a94"
+    property color musicLyricLowlightColor: "#b8b8b8"
 }

@@ -1269,6 +1269,12 @@ PanelWindow {
             }
         }
 
+        Item { Layout.preferredWidth: numbers.musicWorkspaceSpacing }
+
+        MusicPill {
+            popupParentWindow: barWindow
+        }
+
         // ============ 右侧区域 ============
         RowLayout {
             Layout.fillWidth: true
