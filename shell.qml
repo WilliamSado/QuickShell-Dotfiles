@@ -30,6 +30,10 @@ PanelWindow {
     property int itemSpacing: 4
     property int traySpacing: 10
     property int groupSpacing: 6
+    property int popupAnimationMs: 140
+    property int popupAnimationOffset: 8
+    property int memoryPillWidth: 88
+    property int cpuPillWidth: 82
     property string barFont: "JetBrainsMono Nerd Font"
     property string iconFont: "JetBrainsMono Nerd Font"
     property int barFontSize: 16
@@ -51,12 +55,105 @@ PanelWindow {
     property bool networkPopupOpen: false
     property bool clockPopupOpen: false
     property bool powerPopupOpen: false
+    property bool bluetoothPopupClosing: false
+    property bool volumePopupClosing: false
+    property bool networkPopupClosing: false
+    property bool clockPopupClosing: false
+    property bool powerPopupClosing: false
     property string networkPopupMode: "active"
     property var bluetoothNameMap: ({})
     property var audioOutputDevices: []
     property bool audioOutputScanInSinks: false
     property bool audioOutputsExpanded: false
     readonly property string shownWindowTitle: activeWindowTitle()
+
+    onBluetoothPopupOpenChanged: {
+        if (bluetoothPopupOpen) {
+            bluetoothPopupClosing = false;
+        } else if (!bluetoothPopupClosing) {
+            bluetoothPopupClosing = true;
+            bluetoothPopupCloseTimer.restart();
+        }
+    }
+
+    onPowerPopupOpenChanged: {
+        if (powerPopupOpen) {
+            powerPopupClosing = false;
+        } else if (!powerPopupClosing) {
+            powerPopupClosing = true;
+            powerPopupCloseTimer.restart();
+        }
+    }
+
+    onVolumePopupOpenChanged: {
+        if (volumePopupOpen) {
+            volumePopupClosing = false;
+        } else if (!volumePopupClosing) {
+            volumePopupClosing = true;
+            volumePopupCloseTimer.restart();
+        }
+    }
+
+    onNetworkPopupOpenChanged: {
+        if (networkPopupOpen) {
+            networkPopupClosing = false;
+        } else if (!networkPopupClosing) {
+            networkPopupClosing = true;
+            networkPopupCloseTimer.restart();
+        }
+    }
+
+    onClockPopupOpenChanged: {
+        if (clockPopupOpen) {
+            clockPopupClosing = false;
+        } else if (!clockPopupClosing) {
+            clockPopupClosing = true;
+            clockPopupCloseTimer.restart();
+        }
+    }
+
+    function closeBluetoothPopup() {
+        if (!bluetoothPopupOpen) return;
+        bluetoothPopupClosing = true;
+        bluetoothPopupCloseTimer.restart();
+        bluetoothPopupOpen = false;
+    }
+
+    function closePowerPopup() {
+        if (!powerPopupOpen) return;
+        powerPopupClosing = true;
+        powerPopupCloseTimer.restart();
+        powerPopupOpen = false;
+    }
+
+    function closeVolumePopup() {
+        if (!volumePopupOpen) return;
+        volumePopupClosing = true;
+        volumePopupCloseTimer.restart();
+        volumePopupOpen = false;
+    }
+
+    function closeNetworkPopup() {
+        if (!networkPopupOpen) return;
+        networkPopupClosing = true;
+        networkPopupCloseTimer.restart();
+        networkPopupOpen = false;
+    }
+
+    function closeClockPopup() {
+        if (!clockPopupOpen) return;
+        clockPopupClosing = true;
+        clockPopupCloseTimer.restart();
+        clockPopupOpen = false;
+    }
+
+    function closePopupsExcept(name) {
+        if (name !== "bluetooth") closeBluetoothPopup();
+        if (name !== "power") closePowerPopup();
+        if (name !== "volume") closeVolumePopup();
+        if (name !== "network") closeNetworkPopup();
+        if (name !== "clock") closeClockPopup();
+    }
 
     function volumeIconText() {
         if (volumeMuted) return "";
@@ -493,7 +590,7 @@ PanelWindow {
     }
 
     function runPowerCommand(command) {
-        powerPopupOpen = false;
+        closePowerPopup();
         powerProc.command = command;
         powerProc.running = true;
     }
@@ -653,6 +750,41 @@ PanelWindow {
         onTriggered: refreshAudioOutputs()
     }
 
+    Timer {
+        id: bluetoothPopupCloseTimer
+        interval: popupAnimationMs
+        repeat: false
+        onTriggered: bluetoothPopupClosing = false
+    }
+
+    Timer {
+        id: powerPopupCloseTimer
+        interval: popupAnimationMs
+        repeat: false
+        onTriggered: powerPopupClosing = false
+    }
+
+    Timer {
+        id: volumePopupCloseTimer
+        interval: popupAnimationMs
+        repeat: false
+        onTriggered: volumePopupClosing = false
+    }
+
+    Timer {
+        id: networkPopupCloseTimer
+        interval: popupAnimationMs
+        repeat: false
+        onTriggered: networkPopupClosing = false
+    }
+
+    Timer {
+        id: clockPopupCloseTimer
+        interval: popupAnimationMs
+        repeat: false
+        onTriggered: clockPopupClosing = false
+    }
+
     // ====================  布局  ====================
     RowLayout {
         anchors.fill: parent
@@ -687,7 +819,15 @@ PanelWindow {
                 MouseArea {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton
-                    onClicked: powerPopupOpen = !powerPopupOpen
+                    onClicked: {
+                        if (powerPopupOpen) {
+                            closePowerPopup();
+                            return;
+                        }
+
+                        closePopupsExcept("power");
+                        powerPopupOpen = true;
+                    }
                 }
             }
 
@@ -835,7 +975,13 @@ PanelWindow {
                             return;
                         }
 
-                        bluetoothPopupOpen = !bluetoothPopupOpen;
+                        if (bluetoothPopupOpen) {
+                            closeBluetoothPopup();
+                            return;
+                        }
+
+                        closePopupsExcept("bluetooth");
+                        bluetoothPopupOpen = true;
                         if (bluetoothPopupOpen && adapter && adapter.enabled) {
                             adapter.discovering = true;
                             updateBluetoothNameMap();
@@ -885,7 +1031,13 @@ PanelWindow {
                             return;
                         }
 
-                        volumePopupOpen = !volumePopupOpen;
+                        if (volumePopupOpen) {
+                            closeVolumePopup();
+                            return;
+                        }
+
+                        closePopupsExcept("volume");
+                        volumePopupOpen = true;
                         if (volumePopupOpen) refreshAudioOutputs();
                     }
                     onWheel: function(w) { adjustVolume(w.angleDelta.y / 1200) }
@@ -933,7 +1085,13 @@ PanelWindow {
                             return;
                         }
 
-                        networkPopupOpen = !networkPopupOpen;
+                        if (networkPopupOpen) {
+                            closeNetworkPopup();
+                            return;
+                        }
+
+                        closePopupsExcept("network");
+                        networkPopupOpen = true;
                         if (networkPopupOpen) {
                             var active = activeNetworkDevice();
                             networkPopupMode = active && active.type === DeviceType.Wifi ? "wifi" : "wired";
@@ -947,7 +1105,7 @@ PanelWindow {
 
             // ---- 内存 ----
             Rectangle {
-                Layout.preferredWidth: memRow.implicitWidth + pillHPadding * 2
+                Layout.preferredWidth: memoryPillWidth
                 Layout.preferredHeight: pillHeight
                 Layout.alignment: Qt.AlignVCenter
                 radius: pillRadius
@@ -971,6 +1129,8 @@ PanelWindow {
                         color: memoryTextColor
                         font.family: barFont
                         font.pixelSize: barFontSize
+                        width: 48
+                        horizontalAlignment: Text.AlignRight
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
@@ -978,7 +1138,7 @@ PanelWindow {
 
             // ---- CPU ----
             Rectangle {
-                Layout.preferredWidth: cpuRow.implicitWidth + pillHPadding * 2
+                Layout.preferredWidth: cpuPillWidth
                 Layout.preferredHeight: pillHeight
                 Layout.alignment: Qt.AlignVCenter
                 radius: pillRadius
@@ -1002,6 +1162,8 @@ PanelWindow {
                         color: cpuTextColor
                         font.family: barFont
                         font.pixelSize: barFontSize
+                        width: 42
+                        horizontalAlignment: Text.AlignRight
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
@@ -1081,7 +1243,13 @@ PanelWindow {
                             return;
                         }
 
-                        clockPopupOpen = !clockPopupOpen;
+                        if (clockPopupOpen) {
+                            closeClockPopup();
+                            return;
+                        }
+
+                        closePopupsExcept("clock");
+                        clockPopupOpen = true;
                     }
                 }
             }
@@ -1091,13 +1259,13 @@ PanelWindow {
     PopupWindow {
         id: bluetoothPopup
         parentWindow: barWindow
-        visible: bluetoothPopupOpen
+        visible: bluetoothPopupOpen || bluetoothPopupClosing
         implicitWidth: 320
         implicitHeight: Math.min(bluetoothPopupContent.implicitHeight, 360)
         relativeX: popupXForItem(bluetoothPill, implicitWidth)
         relativeY: popupYForItem(bluetoothPill)
         color: "transparent"
-        grabFocus: true
+        grabFocus: bluetoothPopupOpen
         onVisibleChanged: {
             if (!visible) bluetoothPopupOpen = false;
         }
@@ -1105,11 +1273,19 @@ PanelWindow {
         Rectangle {
             id: bluetoothPopupContent
             width: parent.width
+            y: bluetoothPopupOpen ? 0 : -popupAnimationOffset
+            opacity: bluetoothPopupOpen ? 1 : 0
+            scale: bluetoothPopupOpen ? 1 : 0.96
+            transformOrigin: Item.Top
             implicitHeight: bluetoothPopupColumn.implicitHeight + 24
             radius: 18
             color: "#cc121212"
             border.color: "#22ffffff"
             border.width: 1
+
+            Behavior on y { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
 
             Column {
                 id: bluetoothPopupColumn
@@ -1271,13 +1447,13 @@ PanelWindow {
     PopupWindow {
         id: powerPopup
         parentWindow: barWindow
-        visible: powerPopupOpen
+        visible: powerPopupOpen || powerPopupClosing
         implicitWidth: 220
         implicitHeight: powerPopupContent.implicitHeight
         relativeX: popupXForItem(archPill, implicitWidth)
         relativeY: popupYForItem(archPill)
         color: "transparent"
-        grabFocus: true
+        grabFocus: powerPopupOpen
         onVisibleChanged: {
             if (!visible) powerPopupOpen = false;
         }
@@ -1285,11 +1461,19 @@ PanelWindow {
         Rectangle {
             id: powerPopupContent
             width: parent.width
+            y: powerPopupOpen ? 0 : -popupAnimationOffset
+            opacity: powerPopupOpen ? 1 : 0
+            scale: powerPopupOpen ? 1 : 0.96
+            transformOrigin: Item.Top
             implicitHeight: powerPopupColumn.implicitHeight + 24
             radius: 18
             color: "#cc121212"
             border.color: "#22ffffff"
             border.width: 1
+
+            Behavior on y { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
 
             Column {
                 id: powerPopupColumn
@@ -1382,13 +1566,13 @@ PanelWindow {
     PopupWindow {
         id: volumePopup
         parentWindow: barWindow
-        visible: volumePopupOpen
+        visible: volumePopupOpen || volumePopupClosing
         implicitWidth: 300
         implicitHeight: volumePopupContent.implicitHeight
         relativeX: popupXForItem(volumePill, implicitWidth)
         relativeY: popupYForItem(volumePill)
         color: "transparent"
-        grabFocus: true
+        grabFocus: volumePopupOpen
         onVisibleChanged: {
             if (!visible) {
                 volumePopupOpen = false;
@@ -1399,11 +1583,19 @@ PanelWindow {
         Rectangle {
             id: volumePopupContent
             width: parent.width
+            y: volumePopupOpen ? 0 : -popupAnimationOffset
+            opacity: volumePopupOpen ? 1 : 0
+            scale: volumePopupOpen ? 1 : 0.96
+            transformOrigin: Item.Top
             implicitHeight: volumePopupColumn.implicitHeight + 24
             radius: 18
             color: "#cc121212"
             border.color: "#22ffffff"
             border.width: 1
+
+            Behavior on y { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
 
             Column {
                 id: volumePopupColumn
@@ -1624,13 +1816,13 @@ PanelWindow {
     PopupWindow {
         id: networkPopup
         parentWindow: barWindow
-        visible: networkPopupOpen
+        visible: networkPopupOpen || networkPopupClosing
         implicitWidth: 300
         implicitHeight: networkPopupContent.implicitHeight
         relativeX: popupXForItem(networkPill, implicitWidth)
         relativeY: popupYForItem(networkPill)
         color: "transparent"
-        grabFocus: true
+        grabFocus: networkPopupOpen
         onVisibleChanged: {
             if (!visible) networkPopupOpen = false;
         }
@@ -1638,11 +1830,19 @@ PanelWindow {
         Rectangle {
             id: networkPopupContent
             width: parent.width
+            y: networkPopupOpen ? 0 : -popupAnimationOffset
+            opacity: networkPopupOpen ? 1 : 0
+            scale: networkPopupOpen ? 1 : 0.96
+            transformOrigin: Item.Top
             implicitHeight: networkPopupColumn.implicitHeight + 24
             radius: 18
             color: "#cc121212"
             border.color: "#22ffffff"
             border.width: 1
+
+            Behavior on y { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
 
             Column {
                 id: networkPopupColumn
@@ -2002,13 +2202,13 @@ PanelWindow {
     PopupWindow {
         id: clockPopup
         parentWindow: barWindow
-        visible: clockPopupOpen
+        visible: clockPopupOpen || clockPopupClosing
         implicitWidth: 300
         implicitHeight: clockPopupContent.implicitHeight
         relativeX: popupXForItem(clockPill, implicitWidth)
         relativeY: popupYForItem(clockPill)
         color: "transparent"
-        grabFocus: true
+        grabFocus: clockPopupOpen
         onVisibleChanged: {
             if (!visible) clockPopupOpen = false;
         }
@@ -2016,11 +2216,19 @@ PanelWindow {
         Rectangle {
             id: clockPopupContent
             width: parent.width
+            y: clockPopupOpen ? 0 : -popupAnimationOffset
+            opacity: clockPopupOpen ? 1 : 0
+            scale: clockPopupOpen ? 1 : 0.96
+            transformOrigin: Item.Top
             implicitHeight: clockPopupColumn.implicitHeight + 24
             radius: 18
             color: "#cc121212"
             border.color: "#22ffffff"
             border.width: 1
+
+            Behavior on y { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
 
             Column {
                 id: clockPopupColumn
