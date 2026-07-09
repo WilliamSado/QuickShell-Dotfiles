@@ -9,6 +9,7 @@ import Quickshell.Services.SystemTray
 import Quickshell.Widgets
 import QtQuick
 import QtQuick.Layouts
+import "config" as Config
 
 
 PanelWindow {
@@ -20,51 +21,62 @@ PanelWindow {
     implicitHeight: 52
     color: "transparent"
 
-    property int barTopMargin: 8
-    property int barSideMargin: 16
-    property int pillHeight: 36
-    property int pillRadius: 18
-    property int pillHPadding: 10
-    property int windowPillHPadding: 15
-    property int trayIconSize: 21
-    property int itemSpacing: 4
-    property int traySpacing: 10
-    property int groupSpacing: 6
-    property int popupAnimationMs: 140
-    property int popupAnimationOffset: 8
-    property int memoryPillWidth: 88
-    property int cpuPillWidth: 82
+    Config.Numbers { id: numbers }
+    Config.Colors { id: colors }
+    Config.Booleans { id: booleans }
+
+    property alias barTopMargin: numbers.barTopMargin
+    property alias barSideMargin: numbers.barSideMargin
+    property alias pillHeight: numbers.pillHeight
+    property alias pillRadius: numbers.pillRadius
+    property alias pillHPadding: numbers.pillHPadding
+    property alias windowPillHPadding: numbers.windowPillHPadding
+    property alias trayIconSize: numbers.trayIconSize
+    property alias itemSpacing: numbers.itemSpacing
+    property alias traySpacing: numbers.traySpacing
+    property alias groupSpacing: numbers.groupSpacing
+    property alias popupAnimationMs: numbers.popupAnimationMs
+    property alias popupAnimationOffset: numbers.popupAnimationOffset
+    property alias memoryPillWidth: numbers.memoryPillWidth
+    property alias cpuPillWidth: numbers.cpuPillWidth
+    property alias barFontSize: numbers.barFontSize
+    property alias archIconFontSize: numbers.archIconFontSize
+
     property string barFont: "JetBrainsMono Nerd Font"
     property string iconFont: "JetBrainsMono Nerd Font"
-    property int barFontSize: 16
-    property int archIconFontSize: 14
-    property color pillColor: "#33282828"
-    property color sectionPillColor: "#33121212"
-    property color activePillColor: "#99121212"
-    property color textColor: "#ffffff"
-    property color mutedTextColor: "#40ffffff"
-    property color windowTextColor: "#e6f2d6"
-    property color bluetoothTextColor: "#f6a4fe"
-    property color clockTextColor: "#eefff1"
-    property color cpuTextColor: "#FE968B"
-    property color memoryTextColor: "#FFEAAA"
-    property color audioTextColor: "#a4e4fe"
-    property color networkTextColor: "#b0f5e5"
-    property bool bluetoothPopupOpen: false
-    property bool volumePopupOpen: false
-    property bool networkPopupOpen: false
-    property bool clockPopupOpen: false
-    property bool powerPopupOpen: false
-    property bool bluetoothPopupClosing: false
-    property bool volumePopupClosing: false
-    property bool networkPopupClosing: false
-    property bool clockPopupClosing: false
-    property bool powerPopupClosing: false
+
+    property alias pillColor: colors.pillColor
+    property alias sectionPillColor: colors.sectionPillColor
+    property alias activePillColor: colors.activePillColor
+    property alias textColor: colors.textColor
+    property alias mutedTextColor: colors.mutedTextColor
+    property alias windowTextColor: colors.windowTextColor
+    property alias bluetoothTextColor: colors.bluetoothTextColor
+    property alias clockTextColor: colors.clockTextColor
+    property alias cpuTextColor: colors.cpuTextColor
+    property alias memoryTextColor: colors.memoryTextColor
+    property alias audioTextColor: colors.audioTextColor
+    property alias networkTextColor: colors.networkTextColor
+
+    property alias bluetoothPopupOpen: booleans.bluetoothPopupOpen
+    property alias volumePopupOpen: booleans.volumePopupOpen
+    property alias networkPopupOpen: booleans.networkPopupOpen
+    property alias clockPopupOpen: booleans.clockPopupOpen
+    property alias powerPopupOpen: booleans.powerPopupOpen
+    property alias bluetoothPopupClosing: booleans.bluetoothPopupClosing
+    property alias volumePopupClosing: booleans.volumePopupClosing
+    property alias networkPopupClosing: booleans.networkPopupClosing
+    property alias clockPopupClosing: booleans.clockPopupClosing
+    property alias powerPopupClosing: booleans.powerPopupClosing
+    property alias audioOutputScanInSinks: booleans.audioOutputScanInSinks
+    property alias audioOutputsExpanded: booleans.audioOutputsExpanded
+    property alias clockShowDate: booleans.clockShowDate
+    property alias volumeMuted: booleans.volumeMuted
+    property alias networkShowIp: booleans.networkShowIp
+
     property string networkPopupMode: "active"
     property var bluetoothNameMap: ({})
     property var audioOutputDevices: []
-    property bool audioOutputScanInSinks: false
-    property bool audioOutputsExpanded: false
     readonly property string shownWindowTitle: activeWindowTitle()
 
     onBluetoothPopupOpenChanged: {
@@ -534,7 +546,6 @@ PanelWindow {
 
     // ====================  时钟  ====================
     property string currentTime: ""
-    property bool clockShowDate: false
 
     Timer {
         interval: 1000
@@ -547,8 +558,6 @@ PanelWindow {
 
     // ====================  音量  ====================
     property int volumePercent: 0
-    property bool volumeMuted: false
-    property bool networkShowIp: false
     property string networkIpText: ""
 
     Process {
