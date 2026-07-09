@@ -15,6 +15,8 @@ QtObject {
     property int popupAnimationOffset: 8
     property int memoryPillWidth: 88
     property int cpuPillWidth: 82
+    property int quickSettingsWidth: 390
+    property int quickSettingsEdgeWidth: 96
     property int barFontSize: 16
     property int archIconFontSize: 14
 }
