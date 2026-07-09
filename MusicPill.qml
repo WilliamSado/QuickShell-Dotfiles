@@ -16,10 +16,17 @@ Rectangle {
     readonly property var player: activePlayer()
     readonly property bool hasPlayer: player !== null && player !== undefined
     readonly property real progress: mediaProgress()
-    readonly property string mediaText: currentMediaText()
     readonly property var lyricEntries: currentLyricEntries()
-    readonly property int currentLyricIndex: currentLyricIndexFor(hasPlayer ? player.position : 0)
+    readonly property int currentLyricIndex: currentLyricIndexFor(playbackPosition)
+    readonly property string pillLyricText: {
+        var entry = lyricEntries[currentLyricIndex];
+        if (entry && entry.time >= 0 && entry.text) return entry.text;
+        if (hasPlayer && player.trackTitle) return player.trackTitle;
+        return hasPlayer ? player.identity : "Media";
+    }
     property bool popupOpen: false
+    property bool popupClosing: false
+    property real playbackPosition: 0
     property string localLyricsText: ""
     property string localLyricsTrackKey: ""
 
@@ -45,18 +52,7 @@ Rectangle {
 
     function mediaProgress() {
         if (!hasPlayer || !player.lengthSupported || player.length <= 0) return 0;
-        return Math.max(0, Math.min(1, player.position / player.length));
-    }
-
-    function currentMediaText() {
-        if (!hasPlayer) return "";
-
-        var title = player.trackTitle || "";
-        var artist = player.trackArtist || "";
-        if (title && artist) return title + " - " + artist;
-        if (title) return title;
-        if (artist) return artist;
-        return player.identity || "Media";
+        return Math.max(0, Math.min(1, playbackPosition / player.length));
     }
 
     function popupArtistText() {
@@ -234,7 +230,7 @@ Rectangle {
     }
 
     function refreshLocalLyrics() {
-        if (!popupOpen || !hasPlayer) return;
+        if (!hasPlayer) return;
         if (yesplayLyricsProc.running) return;
 
         var metadata = player.metadata || ({});
@@ -306,7 +302,33 @@ Rectangle {
 
     function seekToRatio(ratio) {
         if (!hasPlayer || !player.canSeek || !player.lengthSupported || player.length <= 0) return;
-        player.position = Math.max(0, Math.min(1, ratio)) * player.length;
+        playbackPosition = Math.max(0, Math.min(1, ratio)) * player.length;
+        player.position = playbackPosition;
+    }
+
+    function openMusicPopup() {
+        if (!hasPlayer) return;
+        musicPopupCloseTimer.stop();
+        popupClosing = false;
+        popupOpen = true;
+    }
+
+    function closeMusicPopup() {
+        if (!popupOpen) return;
+        if (!hasPlayer) {
+            popupOpen = false;
+            popupClosing = false;
+            return;
+        }
+
+        popupClosing = true;
+        popupOpen = false;
+        musicPopupCloseTimer.restart();
+    }
+
+    function toggleMusicPopup() {
+        if (popupOpen) closeMusicPopup();
+        else openMusicPopup();
     }
 
     Process {
@@ -329,13 +351,35 @@ Rectangle {
     }
 
     Timer {
+        interval: numbers.musicPositionRefreshInterval
+        repeat: true
+        running: root.hasPlayer
+        triggeredOnStart: true
+        onTriggered: root.playbackPosition = root.player.position
+    }
+
+    Timer {
         interval: numbers.musicLyricRefreshInterval
         repeat: true
-        running: root.popupOpen && root.hasPlayer
+        running: root.hasPlayer
+        triggeredOnStart: true
         onTriggered: root.refreshLocalLyrics()
     }
 
-    onPopupOpenChanged: if (popupOpen) refreshLocalLyrics()
+    Timer {
+        id: musicPopupCloseTimer
+
+        interval: numbers.popupAnimationMs
+        repeat: false
+        onTriggered: root.popupClosing = false
+    }
+
+    onPopupOpenChanged: {
+        if (popupOpen) {
+            popupClosing = false;
+            refreshLocalLyrics();
+        }
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -349,12 +393,13 @@ Rectangle {
     }
 
     RowLayout {
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
         anchors.leftMargin: numbers.musicPillTextMargin
         anchors.rightMargin: numbers.musicPillTextMargin
-        anchors.topMargin: numbers.musicPillTextTopMargin
-        anchors.bottomMargin: numbers.musicPillTextBottomMargin
-        spacing: numbers.musicPillTextSpacing
+        height: implicitHeight
+        spacing: numbers.musicPillIconTitleSpacing
 
         Text {
             text: hasPlayer && player.isPlaying ? "" : ""
@@ -364,62 +409,51 @@ Rectangle {
             Layout.alignment: Qt.AlignVCenter
         }
 
-        Text {
+        Item {
+            id: pillLyricViewport
+
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter
-            text: mediaText
-            color: colors.textColor
-            font.family: "JetBrainsMono Nerd Font"
-            font.pixelSize: numbers.musicPillIconFontSize
-            elide: Text.ElideRight
-            maximumLineCount: 1
-        }
-    }
+            Layout.preferredHeight: pillLyricText.implicitHeight
+            clip: true
 
-    Rectangle {
-        id: progressTrack
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.leftMargin: numbers.musicPillProgressMargin
-        anchors.rightMargin: numbers.musicPillProgressMargin
-        anchors.bottomMargin: numbers.musicPillProgressBottomMargin
-        height: numbers.musicPillProgressHeight
-        radius: height / 2
-        color: colors.musicProgressTrackColor
-        clip: true
+            Text {
+                id: pillLyricText
 
-        Rectangle {
-            width: parent.width * progress
-            height: parent.height
-            radius: height / 2
-            color: colors.audioTextColor
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.pillLyricText
+                color: colors.textColor
+                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: numbers.musicPillIconFontSize
+                maximumLineCount: 1
 
-            Behavior on width {
-                NumberAnimation { duration: numbers.musicProgressAnimationMs }
+                onTextChanged: {
+                    x = 0;
+                    pillLyricMarquee.restart();
+                }
             }
-        }
 
-        Rectangle {
-            width: numbers.musicPillProgressKnobSize
-            height: numbers.musicPillProgressKnobSize
-            radius: numbers.musicPillProgressKnobSize / 2
-            x: Math.max(0, Math.min(parent.width - width, parent.width * progress - width / 2))
-            anchors.verticalCenter: parent.verticalCenter
-            color: colors.audioTextColor
-            visible: hasPlayer && player.lengthSupported && player.length > 0
+            SequentialAnimation {
+                id: pillLyricMarquee
 
-            Behavior on x {
-                NumberAnimation { duration: numbers.musicProgressAnimationMs }
-            }
-        }
+                running: pillLyricText.implicitWidth > pillLyricViewport.width
+                loops: Animation.Infinite
 
-        MouseArea {
-            anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            onPressed: function(mouse) { seekToRatio(mouse.x / width); }
-            onPositionChanged: function(mouse) {
-                if (pressed) seekToRatio(mouse.x / width);
+                PauseAnimation { duration: numbers.musicPillLyricScrollDelay }
+                NumberAnimation {
+                    target: pillLyricText
+                    property: "x"
+                    from: 0
+                    to: Math.min(0, pillLyricViewport.width - pillLyricText.implicitWidth)
+                    duration: Math.max(1, -to * numbers.musicPillLyricScrollMsPerPixel)
+                    easing.type: Easing.Linear
+                }
+                PauseAnimation { duration: numbers.musicPillLyricScrollEndDelay }
+                PropertyAction {
+                    target: pillLyricText
+                    property: "x"
+                    value: 0
+                }
             }
         }
     }
@@ -429,7 +463,6 @@ Rectangle {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: numbers.musicPillTextBottomMargin
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
         propagateComposedEvents: true
         onClicked: function(mouse) {
@@ -438,7 +471,7 @@ Rectangle {
                 player.next();
                 return;
             }
-            popupOpen = !popupOpen;
+            toggleMusicPopup();
         }
         onWheel: function(wheel) {
             if (!hasPlayer) return;
@@ -447,26 +480,48 @@ Rectangle {
         }
     }
 
-    PopupWindow {
+    PanelWindow {
         id: musicPopup
 
-        parentWindow: root.popupParentWindow
-        visible: root.popupOpen && root.hasPlayer
-        implicitWidth: numbers.musicPopupWidth
-        implicitHeight: numbers.musicPopupHeight
-        relativeX: root.popupX()
-        relativeY: root.popupParentWindow.implicitHeight + numbers.musicPopupOffsetY
+        anchors.top: true
+        anchors.bottom: true
+        anchors.left: true
+        anchors.right: true
+        margins.top: root.popupParentWindow.implicitHeight
+        visible: (root.popupOpen || root.popupClosing) && root.hasPlayer
         color: "transparent"
-        grabFocus: root.popupOpen
-        onClosed: root.popupOpen = false
+        exclusionMode: ExclusionMode.Ignore
+
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+            onClicked: root.closeMusicPopup()
+        }
 
         Rectangle {
-            anchors.fill: parent
-            radius: numbers.musicPopupRadius
-            color: colors.activePillColor
-            border.color: colors.musicPopupBorderColor
+            width: numbers.musicPopupWidth
+            height: numbers.musicPopupHeight
+            x: root.popupX()
+            y: root.popupOpen
+                ? numbers.musicPopupOffsetY
+                : numbers.musicPopupOffsetY - numbers.popupAnimationOffset
+            opacity: root.popupOpen ? 1 : 0
+            scale: root.popupOpen ? 1 : 0.96
+            transformOrigin: Item.Top
+            radius: numbers.popupRadius
+            color: colors.popupColor
+            border.color: colors.popupBorderColor
             border.width: 1
             clip: true
+
+            Behavior on y { NumberAnimation { duration: numbers.popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: numbers.popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: numbers.popupAnimationMs; easing.type: Easing.OutCubic } }
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+            }
 
             Item {
                 anchors.fill: parent
@@ -552,7 +607,7 @@ Rectangle {
                         spacing: numbers.musicPillTextSpacing
 
                         Text {
-                            text: root.formatTime(root.hasPlayer ? root.player.position : 0)
+                            text: root.formatTime(root.playbackPosition)
                             color: colors.textColor
                             font.family: "JetBrainsMono Nerd Font"
                             font.pixelSize: numbers.musicTimeFontSize

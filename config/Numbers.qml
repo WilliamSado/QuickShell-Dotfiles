@@ -11,6 +11,7 @@ QtObject {
     property int itemSpacing: 4
     property int traySpacing: 10
     property int groupSpacing: 6
+    property int popupRadius: 18
     property int popupAnimationMs: 140
     property int popupAnimationOffset: 8
     property int memoryPillWidth: 88
@@ -23,7 +24,6 @@ QtObject {
     property int musicPopupHeight: 500
     property int musicPopupMargin: 28
     property int musicPopupSpacing: 28
-    property int musicPopupRadius: 12
     property int musicInfoColumnWidth: 324
     property int musicCoverSize: 250
     property int musicCoverRadius: 10
@@ -36,17 +36,15 @@ QtObject {
     property int musicProgressWaveLength: 22
     property real musicProgressWaveAmplitude: 2.0
     property real musicProgressKnobRadius: 5.0
-    property int musicPillProgressHeight: 3
-    property int musicPillProgressMargin: 12
-    property int musicPillProgressBottomMargin: 5
-    property int musicPillProgressKnobSize: 7
     property int musicPillTextMargin: 12
-    property int musicPillTextTopMargin: 3
-    property int musicPillTextBottomMargin: 8
     property int musicPillTextSpacing: 8
+    property int musicPillIconTitleSpacing: 20
+    property int musicPillLyricScrollDelay: 1000
+    property int musicPillLyricScrollEndDelay: 800
+    property int musicPillLyricScrollMsPerPixel: 35
     property int musicPopupOffsetY: 14
-    property int musicProgressAnimationMs: 120
     property int musicLyricAnimationMs: 160
+    property int musicPositionRefreshInterval: 250
     property int musicLyricRefreshInterval: 2000
     property int musicPillIconFontSize: 12
     property int musicPopupFallbackIconFontSize: 34

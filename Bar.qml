@@ -1272,6 +1272,7 @@ PanelWindow {
         Item { Layout.preferredWidth: numbers.musicWorkspaceSpacing }
 
         MusicPill {
+            id: musicPill
             popupParentWindow: barWindow
         }
 
