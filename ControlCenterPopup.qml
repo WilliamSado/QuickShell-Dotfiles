@@ -323,13 +323,15 @@ Item {
         if (item.type === "app") {
             root.bar.closeControlCenter();
             var fallback = cleanDesktopExec(item.execCommand);
-            var command = "gtk-launch " + shellQuote(item.action) + " >/dev/null 2>&1";
-            if (item.desktopPath && item.desktopPath.length > 0) {
-                command += " || gio launch " + shellQuote(item.desktopPath) + " >/dev/null 2>&1";
-            }
+            var cleanEnv = "env -u ELECTRON_RUN_AS_NODE -u ELECTRON_NO_ATTACH_CONSOLE ";
+            var command = "";
             if (fallback.length > 0) {
-                command += " || setsid -f sh -c " + shellQuote("exec " + fallback) + " >/dev/null 2>&1";
+                command = "setsid -f sh -c " + shellQuote("exec " + cleanEnv + fallback) + " >/tmp/quickshell-launcher.log 2>&1";
             }
+            if (item.desktopPath && item.desktopPath.length > 0) {
+                command += (command.length > 0 ? " || " : "") + cleanEnv + "gio launch " + shellQuote(item.desktopPath) + " >/tmp/quickshell-launcher.log 2>&1";
+            }
+            command += (command.length > 0 ? " || " : "") + cleanEnv + "gtk-launch " + shellQuote(item.action) + " >/tmp/quickshell-launcher.log 2>&1";
             launcherStatus = "Launching " + item.name;
             launcherCommandProc.command = ["sh", "-c", command];
             launcherCommandProc.running = true;
