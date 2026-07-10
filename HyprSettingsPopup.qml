@@ -289,6 +289,127 @@ Item {
                         }
                     }
 
+                    RowLayout {
+                        width: parent.width
+                        height: 34
+                        spacing: 8
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 34
+                            radius: 17
+                            color: root.bar.pillColor
+                            border.color: "#18ffffff"
+                            border.width: 1
+
+                            TextInput {
+                                id: wallpaperDirInput
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                text: root.bar.wallpaperDirectoryInput
+                                activeFocusOnPress: true
+                                color: root.bar.textColor
+                                selectionColor: root.bar.networkTextColor
+                                selectedTextColor: "#121212"
+                                font.family: root.bar.barFont
+                                font.pixelSize: 12
+                                verticalAlignment: TextInput.AlignVCenter
+                                clip: true
+                                onTextChanged: root.bar.wallpaperDirectoryInput = text
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.preferredWidth: 70
+                            Layout.preferredHeight: 34
+                            radius: 17
+                            color: scanWallpaperMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "Scan"
+                                color: root.bar.networkTextColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 12
+                            }
+
+                            MouseArea {
+                                id: scanWallpaperMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: {
+                                    root.bar.wallpaperDirectories = [root.bar.cleanInputPath(wallpaperDirInput.text)];
+                                    root.bar.persistSettings();
+                                    root.bar.refreshWallpapers();
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        text: root.bar.wallpaperBrowserStatus
+                        color: root.bar.mutedTextColor
+                        font.family: root.bar.barFont
+                        font.pixelSize: 12
+                    }
+
+                    Grid {
+                        width: parent.width
+                        columns: 4
+                        rowSpacing: 8
+                        columnSpacing: 8
+                        visible: root.bar.wallpaperFiles.length > 0
+
+                        Repeater {
+                            model: root.bar.wallpaperFiles.slice(0, 12)
+
+                            Rectangle {
+                                width: (parent.width - 24) / 4
+                                height: 82
+                                radius: 12
+                                color: wallpaperThumbMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+                                clip: true
+
+                                Image {
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    height: 54
+                                    source: "file://" + modelData
+                                    fillMode: Image.PreserveAspectCrop
+                                    asynchronous: true
+                                    cache: false
+                                }
+
+                                Text {
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.bottom: parent.bottom
+                                    anchors.leftMargin: 6
+                                    anchors.rightMargin: 6
+                                    anchors.bottomMargin: 6
+                                    text: modelData.replace(/^.*\//, "")
+                                    color: root.bar.textColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 10
+                                    elide: Text.ElideRight
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+
+                                MouseArea {
+                                    id: wallpaperThumbMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: {
+                                        wallpaperInput.text = modelData;
+                                        root.bar.selectWallpaper(modelData);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     Text {
                         text: "Accent"
                         color: root.bar.mutedTextColor

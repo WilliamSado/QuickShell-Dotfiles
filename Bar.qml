@@ -4,6 +4,7 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Networking
 import Quickshell.Services.Pipewire
+import Quickshell.Services.Notifications
 import Quickshell.Bluetooth
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
@@ -26,6 +27,11 @@ PanelWindow {
     Config.Numbers { id: numbers }
     Config.Colors { id: colors }
     Config.Booleans { id: booleans }
+    Config.ThemePresets { id: themePresets }
+    SettingsStore {
+        id: settingsStore
+        onLoaded: applyStoredSettings()
+    }
 
     property alias barTopMargin: numbers.barTopMargin
     property alias barSideMargin: numbers.barSideMargin
@@ -78,13 +84,41 @@ PanelWindow {
     property alias quickSettingsClosing: booleans.quickSettingsClosing
     property alias suppressQuickSettingsCloseAnimation: booleans.suppressQuickSettingsCloseAnimation
     property alias audioOutputScanInSinks: booleans.audioOutputScanInSinks
+    property alias audioInputScanInSources: booleans.audioInputScanInSources
     property alias audioOutputsExpanded: booleans.audioOutputsExpanded
+    property alias audioInputsExpanded: booleans.audioInputsExpanded
     property alias clockShowDate: booleans.clockShowDate
     property alias volumeMuted: booleans.volumeMuted
+    property alias sourceMuted: booleans.sourceMuted
     property alias networkShowIp: booleans.networkShowIp
+    property alias performancePopupOpen: booleans.performancePopupOpen
+    property alias performancePopupClosing: booleans.performancePopupClosing
+    property alias notificationCenterOpen: booleans.notificationCenterOpen
+    property alias notificationCenterClosing: booleans.notificationCenterClosing
 
     property string networkPopupMode: "active"
+    property string currentThemeName: "Tela Cyan"
     property string hyprWallpaperPath: ""
+    property var wallpaperDirectories: ["/home/sado/Pictures/wallpapers"]
+    property string wallpaperDirectoryInput: "/home/sado/Pictures/wallpapers"
+    property var wallpaperFiles: []
+    property string wallpaperBrowserStatus: "Not scanned"
+    property string wifiPassword: ""
+    property string wifiPasswordSsid: ""
+    property var wifiPasswordNetwork: null
+    property bool wifiPasswordOpen: false
+    property string powerProfile: "balanced"
+    property string powerProfileStatus: "Ready"
+    property int sourcePercent: 0
+    property var audioInputDevices: []
+    property string performanceText: "--"
+    property string temperatureText: "--"
+    property string processText: "--"
+    property bool notificationsDnd: false
+    property var notificationHistory: []
+    property int unreadNotifications: 0
+    property bool settingsApplyingStored: false
+    property bool settingsRestoring: false
     property string hyprStatusText: "Ready"
     property string hyprCommandErrorText: ""
     property string hyprMonitorName: "Unknown"
@@ -109,6 +143,8 @@ PanelWindow {
         || volumePopupOpen
         || networkPopupOpen
         || clockPopupOpen
+        || performancePopupOpen
+        || notificationCenterOpen
         || hyprSettingsOpen
         || quickSettingsOpen
     readonly property bool clickAwayOpen: bluetoothPopupOpen
@@ -116,11 +152,15 @@ PanelWindow {
         || volumePopupOpen
         || networkPopupOpen
         || clockPopupOpen
+        || performancePopupOpen
+        || notificationCenterOpen
     readonly property int clickAwayHoleX: bluetoothPopupOpen ? bluetoothPopup.relativeX
         : powerPopupOpen ? powerPopup.relativeX
         : volumePopupOpen ? volumePopup.relativeX
         : networkPopupOpen ? networkPopup.relativeX
         : clockPopupOpen ? clockPopup.relativeX
+        : performancePopupOpen ? performancePopup.relativeX
+        : notificationCenterOpen ? notificationCenter.relativeX
         : hyprSettingsOpen ? hyprSettingsPopup.relativeX
         : quickSettingsOpen ? quickSettingsWindow.relativeX
         : 0
@@ -129,6 +169,8 @@ PanelWindow {
         : volumePopupOpen ? volumePopup.relativeY
         : networkPopupOpen ? networkPopup.relativeY
         : clockPopupOpen ? clockPopup.relativeY
+        : performancePopupOpen ? performancePopup.relativeY
+        : notificationCenterOpen ? notificationCenter.relativeY
         : hyprSettingsOpen ? hyprSettingsPopup.relativeY
         : quickSettingsOpen ? quickSettingsWindow.relativeY
         : barWindow.implicitHeight) - barWindow.implicitHeight
@@ -137,6 +179,8 @@ PanelWindow {
         : volumePopupOpen ? volumePopup.implicitWidth
         : networkPopupOpen ? networkPopup.implicitWidth
         : clockPopupOpen ? clockPopup.implicitWidth
+        : performancePopupOpen ? performancePopup.implicitWidth
+        : notificationCenterOpen ? notificationCenter.implicitWidth
         : hyprSettingsOpen ? hyprSettingsPopup.implicitWidth
         : quickSettingsOpen ? quickSettingsWindow.implicitWidth
         : 0
@@ -145,6 +189,8 @@ PanelWindow {
         : volumePopupOpen ? volumePopup.implicitHeight
         : networkPopupOpen ? networkPopup.implicitHeight
         : clockPopupOpen ? clockPopup.implicitHeight
+        : performancePopupOpen ? performancePopup.implicitHeight
+        : notificationCenterOpen ? notificationCenter.implicitHeight
         : hyprSettingsOpen ? hyprSettingsPopup.implicitHeight
         : quickSettingsOpen ? quickSettingsWindow.implicitHeight
         : 0
@@ -191,6 +237,24 @@ PanelWindow {
         } else if (!clockPopupClosing) {
             clockPopupClosing = true;
             clockPopupCloseTimer.restart();
+        }
+    }
+
+    onPerformancePopupOpenChanged: {
+        if (performancePopupOpen) {
+            performancePopupClosing = false;
+        } else if (!performancePopupClosing) {
+            performancePopupClosing = true;
+            performancePopupCloseTimer.restart();
+        }
+    }
+
+    onNotificationCenterOpenChanged: {
+        if (notificationCenterOpen) {
+            notificationCenterClosing = false;
+        } else if (!notificationCenterClosing) {
+            notificationCenterClosing = true;
+            notificationCenterCloseTimer.restart();
         }
     }
 
@@ -251,6 +315,20 @@ PanelWindow {
         clockPopupOpen = false;
     }
 
+    function closePerformancePopup() {
+        if (!performancePopupOpen) return;
+        performancePopupClosing = true;
+        performancePopupCloseTimer.restart();
+        performancePopupOpen = false;
+    }
+
+    function closeNotificationCenter() {
+        if (!notificationCenterOpen) return;
+        notificationCenterClosing = true;
+        notificationCenterCloseTimer.restart();
+        notificationCenterOpen = false;
+    }
+
     function closeHyprSettings() {
         if (!hyprSettingsOpen) return;
         hyprSettingsClosing = true;
@@ -294,6 +372,8 @@ PanelWindow {
         if (name !== "volume") closeVolumePopup();
         if (name !== "network") closeNetworkPopup();
         if (name !== "clock") closeClockPopup();
+        if (name !== "performance") closePerformancePopup();
+        if (name !== "notifications") closeNotificationCenter();
         if (name !== "hyprSettings") closeHyprSettings();
         if (name !== "quickSettings") closeQuickSettings();
     }
@@ -540,7 +620,20 @@ PanelWindow {
 
         if (network.known || network.security === WifiSecurityType.Open) {
             network.connect();
+            return;
         }
+
+        wifiPasswordNetwork = network;
+        wifiPasswordSsid = network.name || "";
+        wifiPassword = "";
+        wifiPasswordOpen = true;
+    }
+
+    function connectWifiWithPassword() {
+        if (!wifiPasswordSsid || wifiPassword.length === 0) return;
+        runQuickCommand("nmcli dev wifi connect " + shellQuote(wifiPasswordSsid) + " password " + shellQuote(wifiPassword), "Connecting WiFi");
+        wifiPasswordOpen = false;
+        wifiPassword = "";
     }
 
     function activeNetworkInterface() {
@@ -714,6 +807,7 @@ PanelWindow {
             + shellQuote("}") + " > " + configPath;
 
         runHyprCommand("if command -v swww >/dev/null 2>&1; then swww img " + path + " --transition-type grow --transition-duration 0.35; elif command -v setsid >/dev/null 2>&1 && command -v hyprpaper >/dev/null 2>&1; then test -f " + path + " || exit 1; " + configCommand + "; pkill -x hyprpaper >/dev/null 2>&1 || true; setsid -f hyprpaper --config " + hyprpaperConfig + " >/tmp/hyprpaper-quickshell.log 2>&1; else exit 1; fi", "Applying wallpaper");
+        persistSettings();
     }
 
     function applyHyprSpacing() {
@@ -727,11 +821,13 @@ PanelWindow {
     function toggleHyprAnimations() {
         hyprAnimationsEnabled = !hyprAnimationsEnabled;
         runHyprCommand("hyprctl keyword animations:enabled " + (hyprAnimationsEnabled ? "1" : "0"), "Toggling animations");
+        persistSettings();
     }
 
     function toggleHyprBlur() {
         hyprBlurEnabled = !hyprBlurEnabled;
         runHyprCommand("hyprctl keyword decoration:blur:enabled " + (hyprBlurEnabled ? "1" : "0"), "Toggling blur");
+        persistSettings();
     }
 
     function runQuickCommand(command, statusText) {
@@ -747,6 +843,7 @@ PanelWindow {
     function applyThemePreset(preset) {
         if (!preset) return;
 
+        currentThemeName = preset.name || currentThemeName;
         pillColor = preset.pill || "#33282828";
         sectionPillColor = preset.section || "#33121212";
         activePillColor = preset.active || "#99121212";
@@ -759,11 +856,140 @@ PanelWindow {
         memoryTextColor = preset.memory || preset.warm || "#FFEAAA";
         audioTextColor = preset.audio || preset.accent2 || "#a4e4fe";
         networkTextColor = preset.network || preset.accent || "#b0f5e5";
+        persistSettings();
+    }
+
+    function themePresetByName(name) {
+        for (var i = 0; i < themePresets.presets.length; i++) {
+            if (themePresets.presets[i].name === name) return themePresets.presets[i];
+        }
+        return themePresets.presets.length > 0 ? themePresets.presets[0] : null;
+    }
+
+    function applyStoredSettings() {
+        settingsApplyingStored = true;
+        currentThemeName = settingsStore.themeName;
+        var preset = themePresetByName(currentThemeName);
+        if (preset) applyThemePreset(preset);
+        if (settingsStore.wallpaperPath.length > 0) hyprWallpaperPath = settingsStore.wallpaperPath;
+        wallpaperDirectories = settingsStore.wallpaperDirectories;
+        wallpaperDirectoryInput = wallpaperDirectories.length > 0 ? wallpaperDirectories[0] : "/home/sado/Pictures/wallpapers";
+        popupAnimationMs = settingsStore.popupAnimationMs;
+        popupAnimationOffset = settingsStore.popupAnimationOffset;
+        hyprBlurEnabled = settingsStore.hyprBlurEnabled;
+        hyprAnimationsEnabled = settingsStore.hyprAnimationsEnabled;
+        notificationsDnd = settingsStore.doNotDisturb;
+        powerProfile = settingsStore.powerProfile;
+        settingsApplyingStored = false;
+        restoreRememberedSettings();
+        refreshWallpapers();
+    }
+
+    function persistSettings() {
+        if (settingsApplyingStored) return;
+        settingsStore.themeName = currentThemeName;
+        settingsStore.wallpaperPath = hyprWallpaperPath;
+        settingsStore.wallpaperDirectories = wallpaperDirectories;
+        settingsStore.popupAnimationMs = popupAnimationMs;
+        settingsStore.popupAnimationOffset = popupAnimationOffset;
+        settingsStore.hyprBlurEnabled = hyprBlurEnabled;
+        settingsStore.hyprAnimationsEnabled = hyprAnimationsEnabled;
+        settingsStore.doNotDisturb = notificationsDnd;
+        settingsStore.powerProfile = powerProfile;
+        settingsStore.rememberedVolumePercent = volumePercent;
+        settingsStore.rememberedBrightnessPercent = quickBrightnessPercent;
+        settingsStore.rememberedSourcePercent = sourcePercent;
+        settingsStore.rememberedMuted = volumeMuted;
+        settingsStore.rememberedSourceMuted = sourceMuted;
+        settingsStore.save();
+    }
+
+    function restoreRememberedSettings() {
+        settingsRestoring = true;
+        var commands = [];
+        if (settingsStore.rememberedVolumePercent >= 0) {
+            volumePercent = Math.max(0, Math.min(100, settingsStore.rememberedVolumePercent));
+            commands.push("wpctl set-volume @DEFAULT_AUDIO_SINK@ " + (volumePercent / 100).toFixed(2));
+            commands.push("wpctl set-mute @DEFAULT_AUDIO_SINK@ " + (settingsStore.rememberedMuted ? "1" : "0"));
+        }
+        if (settingsStore.rememberedSourcePercent >= 0) {
+            sourcePercent = Math.max(0, Math.min(100, settingsStore.rememberedSourcePercent));
+            commands.push("wpctl set-volume @DEFAULT_AUDIO_SOURCE@ " + (sourcePercent / 100).toFixed(2));
+            commands.push("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ " + (settingsStore.rememberedSourceMuted ? "1" : "0"));
+        }
+        if (settingsStore.rememberedBrightnessPercent >= 0) {
+            quickBrightnessPercent = Math.max(1, Math.min(100, settingsStore.rememberedBrightnessPercent));
+            commands.push("if command -v brightnessctl >/dev/null 2>&1 && ls /sys/class/backlight/* >/dev/null 2>&1; then brightnessctl set " + quickBrightnessPercent + "%; elif command -v ddcutil >/dev/null 2>&1; then ddcutil setvcp 10 " + quickBrightnessPercent + "; fi");
+        }
+        if (powerProfile.length > 0 && powerProfile !== "unavailable") {
+            commands.push("command -v powerprofilesctl >/dev/null 2>&1 && powerprofilesctl set " + shellQuote(powerProfile) + " || true");
+        }
+        if (commands.length > 0) {
+            restoreSettingsProc.command = ["sh", "-c", commands.join("; ")];
+            restoreSettingsProc.running = true;
+        } else {
+            settingsRestoring = false;
+        }
+    }
+
+    function refreshWallpapers() {
+        var parts = [];
+        for (var i = 0; i < wallpaperDirectories.length; i++) parts.push(shellQuote(wallpaperDirectories[i]));
+        wallpaperFiles = [];
+        wallpaperBrowserStatus = "Scanning";
+        wallpaperScanProc.command = ["sh", "-c", "for dir in " + parts.join(" ") + "; do [ -d \"$dir\" ] && find \"$dir\" -maxdepth 1 -type f \\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\); done | sort | head -n 60"];
+        wallpaperScanProc.running = true;
+    }
+
+    function selectWallpaper(path) {
+        hyprWallpaperPath = path;
+        applyWallpaper();
+    }
+
+    function setPowerProfile(profile) {
+        powerProfile = profile;
+        powerProfileStatus = "Applying";
+        persistSettings();
+        powerProfileProc.command = ["powerprofilesctl", "set", profile];
+        powerProfileProc.running = true;
+    }
+
+    function refreshPowerProfile() {
+        powerProfileReadProc.running = true;
+    }
+
+    function refreshPerformance() {
+        performanceProc.running = true;
+    }
+
+    function clearNotifications() {
+        notificationHistory = [];
+        unreadNotifications = 0;
+    }
+
+    function toggleDoNotDisturb() {
+        notificationsDnd = !notificationsDnd;
+        persistSettings();
+    }
+
+    function addNotification(notification) {
+        if (!notification || notificationsDnd) return;
+        notification.tracked = true;
+        var history = notificationHistory.slice();
+        history.unshift({
+            "appName": notification.appName || "Application",
+            "summary": notification.summary || "",
+            "body": notification.body || "",
+            "time": Qt.formatTime(new Date(), "hh:mm")
+        });
+        notificationHistory = history.slice(0, 30);
+        unreadNotifications += 1;
     }
 
     function setBrightnessPercent(percent) {
         var clamped = Math.max(1, Math.min(100, Math.round(percent)));
         quickBrightnessPercent = clamped;
+        if (!settingsRestoring) persistSettings();
         runQuickCommand("if command -v brightnessctl >/dev/null 2>&1 && ls /sys/class/backlight/* >/dev/null 2>&1; then brightnessctl set " + clamped + "%; elif command -v ddcutil >/dev/null 2>&1; then ddcutil setvcp 10 " + clamped + "; else exit 1; fi", "Brightness " + clamped + "%");
     }
 
@@ -940,11 +1166,27 @@ PanelWindow {
         }
     }
 
+    Process {
+        id: sourceProc
+        command: ["sh", "-c", "wpctl get-volume @DEFAULT_AUDIO_SOURCE@"]
+        stdout: SplitParser {
+            onRead: function(data) {
+                var line = data.trim();
+                var match = line.match(/Volume:\s*([\d.]+)/);
+                if (match) sourcePercent = Math.round(parseFloat(match[1]) * 100);
+                sourceMuted = line.indexOf("MUTED") !== -1;
+            }
+        }
+    }
+
     Timer {
         interval: 100
         repeat: true
         running: true
-        onTriggered: volProc.running = true
+        onTriggered: {
+            volProc.running = true;
+            sourceProc.running = true;
+        }
     }
 
     Component.onCompleted: {
@@ -953,7 +1195,10 @@ PanelWindow {
         updateClock();
         volProc.running = true;
         refreshAudioOutputs();
+        refreshAudioInputs();
         refreshHyprMonitors();
+        refreshPowerProfile();
+        refreshPerformance();
     }
 
     function updateClock() {
@@ -991,6 +1236,8 @@ PanelWindow {
     }
 
     function toggleMute() {
+        volumeMuted = !volumeMuted;
+        if (!settingsRestoring) persistSettings();
         volMuteProc.running = true;
     }
 
@@ -1022,10 +1269,53 @@ PanelWindow {
         audioDefaultProc.running = true;
     }
 
+    function sourceIconText() {
+        return sourceMuted ? "" : "";
+    }
+
+    function audioSources() {
+        return audioInputDevices;
+    }
+
+    function audioSourceName(source) {
+        if (!source) return "Unknown input";
+        return source.name || "Unknown input";
+    }
+
+    function isDefaultAudioSource(source) {
+        return source && source.active;
+    }
+
+    function setDefaultAudioSource(source) {
+        if (!source) return;
+        audioInputDefaultProc.command = ["wpctl", "set-default", String(source.id)];
+        audioInputDefaultProc.running = true;
+    }
+
+    function setSourcePercent(percent) {
+        var clamped = Math.max(0, Math.min(100, Math.round(percent)));
+        sourcePercent = clamped;
+        if (!settingsRestoring) persistSettings();
+        audioInputSetProc.command = ["sh", "-c", "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ " + (clamped / 100).toFixed(2)];
+        audioInputSetProc.running = true;
+    }
+
+    function toggleSourceMute() {
+        sourceMuted = !sourceMuted;
+        if (!settingsRestoring) persistSettings();
+        audioInputMuteProc.running = true;
+    }
+
     function refreshAudioOutputs() {
         audioOutputDevices = [];
         audioOutputScanInSinks = false;
         audioOutputsProc.running = true;
+    }
+
+    function refreshAudioInputs() {
+        audioInputDevices = [];
+        audioInputScanInSources = false;
+        audioInputsProc.running = true;
     }
 
     function parseAudioOutputLine(line) {
@@ -1055,14 +1345,35 @@ PanelWindow {
         }
     }
 
+    function parseAudioInputLine(line) {
+        var clean = line.replace(/[│├└─]/g, " ").trim();
+        if (clean === "Sources:") {
+            audioInputScanInSources = true;
+            return;
+        }
+        if (audioInputScanInSources && clean.match(/^(Sink endpoints|Source endpoints|Streams|Filters|Video|Settings|Sinks):/)) {
+            audioInputScanInSources = false;
+        }
+        if (!audioInputScanInSources) return;
+        var match = clean.match(/^(\*)?\s*(\d+)\.\s+(.+?)(?:\s+\[vol:.*)?$/);
+        if (!match) return;
+        var inputs = audioInputDevices.slice();
+        inputs.push({ "id": parseInt(match[2]), "name": match[3], "active": match[1] === "*" });
+        audioInputDevices = inputs;
+    }
+
     function setVolumePercent(percent) {
         var clamped = Math.max(0, Math.min(100, Math.round(percent)));
+        volumePercent = clamped;
+        if (!settingsRestoring) persistSettings();
         volSetProc.command = ["sh", "-c", "wpctl set-volume @DEFAULT_AUDIO_SINK@ " + (clamped / 100).toFixed(2)];
         volSetProc.running = true;
     }
 
     function adjustVolume(delta) {
         var newVol = Math.max(0, Math.min(1.0, (volumePercent / 100) + delta));
+        volumePercent = Math.round(newVol * 100);
+        if (!settingsRestoring) persistSettings();
         volSetProc.command = ["sh", "-c", "wpctl set-volume @DEFAULT_AUDIO_SINK@ " + newVol.toFixed(2)];
         volSetProc.running = true;
     }
@@ -1070,6 +1381,7 @@ PanelWindow {
     Process {
         id: volMuteProc
         command: ["sh", "-c", "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"]
+        onExited: volProc.running = true
     }
 
     Process {
@@ -1088,11 +1400,123 @@ PanelWindow {
     }
 
     Process {
+        id: audioInputsProc
+        command: ["wpctl", "status"]
+        stdout: SplitParser {
+            onRead: function(data) {
+                parseAudioInputLine(data);
+            }
+        }
+    }
+
+    Process {
         id: audioDefaultProc
         command: ["sh", "-c", "echo 0"]
         onExited: {
             refreshAudioOutputs();
             volProc.running = true;
+        }
+    }
+
+    Process {
+        id: audioInputDefaultProc
+        command: ["sh", "-c", "echo 0"]
+        onExited: {
+            refreshAudioInputs();
+            sourceProc.running = true;
+        }
+    }
+
+    Process {
+        id: audioInputMuteProc
+        command: ["sh", "-c", "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"]
+        onExited: sourceProc.running = true
+    }
+
+    Process {
+        id: audioInputSetProc
+        command: ["sh", "-c", "echo 0"]
+        onExited: sourceProc.running = true
+    }
+
+    Process {
+        id: restoreSettingsProc
+        command: ["sh", "-c", "true"]
+        onExited: {
+            settingsRestoring = false;
+            volProc.running = true;
+            sourceProc.running = true;
+            quickBrightnessProc.running = true;
+            refreshPowerProfile();
+        }
+    }
+
+    Process {
+        id: wallpaperScanProc
+        command: ["sh", "-c", "true"]
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var files = [];
+                var lines = text.split("\n");
+                for (var i = 0; i < lines.length; i++) {
+                    var path = lines[i].trim();
+                    if (path.length > 0) files.push(path);
+                }
+                wallpaperFiles = files;
+                wallpaperBrowserStatus = files.length > 0 ? files.length + " wallpapers" : "No wallpapers";
+            }
+        }
+        onExited: function(exitCode) {
+            if (exitCode !== 0) wallpaperBrowserStatus = "Scan failed";
+        }
+    }
+
+    Process {
+        id: powerProfileReadProc
+        command: ["sh", "-c", "command -v powerprofilesctl >/dev/null 2>&1 && powerprofilesctl get || echo unavailable"]
+        stdout: SplitParser {
+            onRead: function(data) {
+                var profile = data.trim();
+                if (profile.length > 0) {
+                    powerProfile = profile;
+                    powerProfileStatus = profile === "unavailable" ? "Unavailable" : "Ready";
+                }
+            }
+        }
+    }
+
+    Process {
+        id: powerProfileProc
+        command: ["sh", "-c", "true"]
+        onExited: function(exitCode) {
+            powerProfileStatus = exitCode === 0 ? "Done" : "Failed";
+            refreshPowerProfile();
+        }
+    }
+
+    Process {
+        id: performanceProc
+        command: ["sh", "-c", "printf 'Load: '; cut -d' ' -f1-3 /proc/loadavg; printf 'Temp: '; for f in /sys/class/hwmon/hwmon*/temp*_input; do [ -r \"$f\" ] && awk '{printf \"%.1fC\\n\", $1/1000}' \"$f\" && break; done 2>/dev/null || true; printf 'Top: '; ps -eo comm,%cpu,%mem --sort=-%cpu | awk 'NR>1 {printf \"%s %s%% %s%%\", $1, $2, $3; exit}'"]
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var lines = text.trim().split("\n");
+                performanceText = lines.length > 0 ? lines[0] : "--";
+                temperatureText = lines.length > 1 && lines[1].trim() !== "Temp:" ? lines[1] : "Temp: --";
+                processText = lines.length > 2 ? lines[2] : "Top: --";
+            }
+        }
+    }
+
+    NotificationServer {
+        id: notificationServer
+        keepOnReload: true
+        bodySupported: true
+        actionsSupported: true
+        imageSupported: true
+        onNotification: function(notification) {
+            addNotification(notification);
         }
     }
 
@@ -1199,6 +1623,20 @@ PanelWindow {
         interval: popupAnimationMs
         repeat: false
         onTriggered: clockPopupClosing = false
+    }
+
+    Timer {
+        id: performancePopupCloseTimer
+        interval: popupAnimationMs
+        repeat: false
+        onTriggered: performancePopupClosing = false
+    }
+
+    Timer {
+        id: notificationCenterCloseTimer
+        interval: popupAnimationMs
+        repeat: false
+        onTriggered: notificationCenterClosing = false
     }
 
     Timer {
@@ -1328,7 +1766,7 @@ PanelWindow {
                     Rectangle {
                         property var ws: Hyprland.workspaces.values.find(workspace => workspace.id === index + 1)
                         property bool isActive: Hyprland.focusedWorkspace?.id === (index + 1)
-                        property bool hasWindows: ws && ws.toplevels && ws.toplevels.values.length > 0
+                        property bool hasWindows: !!(ws && ws.toplevels && ws.toplevels.values.length > 0)
 
                         width: 30
                         height: 30
@@ -1370,6 +1808,56 @@ PanelWindow {
             spacing: groupSpacing
 
             Item { Layout.fillWidth: true }
+
+            // ---- 通知 ----
+            Rectangle {
+                id: notificationPill
+                Layout.preferredWidth: notifRow.implicitWidth + pillHPadding * 2
+                Layout.preferredHeight: pillHeight
+                Layout.alignment: Qt.AlignVCenter
+                radius: pillRadius
+                color: notificationCenterOpen ? activePillColor : pillColor
+
+                Row {
+                    id: notifRow
+                    anchors.centerIn: parent
+                    spacing: itemSpacing
+
+                    Text {
+                        text: notificationsDnd ? "󰂛" : ""
+                        color: clockTextColor
+                        font.family: iconFont
+                        font.pixelSize: barFontSize
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        visible: unreadNotifications > 0
+                        text: unreadNotifications
+                        color: clockTextColor
+                        font.family: barFont
+                        font.pixelSize: barFontSize
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                    onClicked: function(mouse) {
+                        if (mouse.button === Qt.RightButton) {
+                            toggleDoNotDisturb();
+                            return;
+                        }
+                        if (notificationCenterOpen) closeNotificationCenter();
+                        else {
+                            closePopupsExcept("notifications");
+                            notificationCenterOpen = true;
+                            unreadNotifications = 0;
+                        }
+                    }
+                }
+            }
 
             // ---- 系统托盘 ----
             Rectangle {
@@ -1596,6 +2084,7 @@ PanelWindow {
 
             // ---- 内存 ----
             Rectangle {
+                id: memoryPill
                 Layout.preferredWidth: memoryPillWidth
                 Layout.preferredHeight: pillHeight
                 Layout.alignment: Qt.AlignVCenter
@@ -1625,10 +2114,23 @@ PanelWindow {
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        if (performancePopupOpen) closePerformancePopup();
+                        else {
+                            closePopupsExcept("performance");
+                            refreshPerformance();
+                            performancePopupOpen = true;
+                        }
+                    }
+                }
             }
 
             // ---- CPU ----
             Rectangle {
+                id: cpuPill
                 Layout.preferredWidth: cpuPillWidth
                 Layout.preferredHeight: pillHeight
                 Layout.alignment: Qt.AlignVCenter
@@ -1656,6 +2158,18 @@ PanelWindow {
                         width: 42
                         horizontalAlignment: Text.AlignRight
                         anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        if (performancePopupOpen) closePerformancePopup();
+                        else {
+                            closePopupsExcept("performance");
+                            refreshPerformance();
+                            performancePopupOpen = true;
+                        }
                     }
                 }
             }
@@ -2006,6 +2520,69 @@ PanelWindow {
                     color: "#18ffffff"
                 }
 
+                Column {
+                    width: parent.width
+                    spacing: 7
+
+                    Text {
+                        text: "Power profile"
+                        color: mutedTextColor
+                        font.family: barFont
+                        font.pixelSize: 12
+                    }
+
+                    RowLayout {
+                        width: parent.width
+                        height: 32
+                        spacing: 6
+
+                        Repeater {
+                            model: [
+                                { label: "Saver", value: "power-saver" },
+                                { label: "Balanced", value: "balanced" },
+                                { label: "Perf", value: "performance" }
+                            ]
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 32
+                                radius: 16
+                                color: powerProfile === modelData.value ? activePillColor : profileMouse.containsMouse ? "#44282828" : pillColor
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData.label
+                                    color: networkTextColor
+                                    font.family: barFont
+                                    font.pixelSize: 12
+                                }
+
+                                MouseArea {
+                                    id: profileMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: setPowerProfile(modelData.value)
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: powerProfileStatus
+                        color: mutedTextColor
+                        font.family: barFont
+                        font.pixelSize: 11
+                        horizontalAlignment: Text.AlignRight
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    color: "#18ffffff"
+                }
+
                 Repeater {
                     model: [
                         { icon: "", label: "Lock", command: ["hyprlock"] },
@@ -2072,6 +2649,7 @@ PanelWindow {
             if (!visible) {
                 volumePopupOpen = false;
                 audioOutputsExpanded = false;
+                audioInputsExpanded = false;
             }
         }
 
@@ -2301,6 +2879,163 @@ PanelWindow {
                             anchors.fill: parent
                             hoverEnabled: true
                             onClicked: setDefaultAudioSink(modelData)
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    color: "#18ffffff"
+                }
+
+                RowLayout {
+                    width: parent.width
+                    height: 28
+                    spacing: 10
+
+                    Text {
+                        text: sourceIconText()
+                        color: audioTextColor
+                        font.family: iconFont
+                        font.pixelSize: 15
+                        Layout.preferredWidth: 24
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    Text {
+                        text: sourcePercent + "%"
+                        color: audioTextColor
+                        font.family: barFont
+                        font.pixelSize: 13
+                        Layout.preferredWidth: 42
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 8
+                        radius: 4
+                        color: "#24ffffff"
+                        Layout.alignment: Qt.AlignVCenter
+
+                        Rectangle {
+                            width: parent.width * Math.min(sourcePercent, 100) / 100
+                            height: parent.height
+                            radius: parent.radius
+                            color: audioTextColor
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: function(mouse) { setSourcePercent(mouse.x / width * 100); }
+                            onPositionChanged: function(mouse) {
+                                if (pressed) setSourcePercent(mouse.x / width * 100);
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.preferredWidth: 54
+                        Layout.preferredHeight: 28
+                        radius: 14
+                        color: sourceMuted ? activePillColor : pillColor
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: sourceMuted ? "muted" : "mic"
+                            color: audioTextColor
+                            font.family: barFont
+                            font.pixelSize: 12
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: toggleSourceMute()
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 34
+                    radius: 12
+                    color: inputHeaderMouse.containsMouse ? "#44282828" : "transparent"
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        spacing: 8
+
+                        Text {
+                            text: audioInputsExpanded ? "" : ""
+                            color: audioTextColor
+                            font.family: iconFont
+                            font.pixelSize: 14
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        Text {
+                            text: "Input"
+                            color: mutedTextColor
+                            font.family: barFont
+                            font.pixelSize: 13
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                    }
+
+                    MouseArea {
+                        id: inputHeaderMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: {
+                            audioInputsExpanded = !audioInputsExpanded;
+                            if (audioInputsExpanded) refreshAudioInputs();
+                        }
+                    }
+                }
+
+                Repeater {
+                    model: audioInputsExpanded ? audioSources() : []
+
+                    Rectangle {
+                        width: volumePopupColumn.width
+                        height: 38
+                        radius: 12
+                        color: isDefaultAudioSource(modelData) ? activePillColor : (sourceMouse.containsMouse ? "#44282828" : "transparent")
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 10
+                            anchors.rightMargin: 10
+                            spacing: 8
+
+                            Text {
+                                text: isDefaultAudioSource(modelData) ? "" : ""
+                                color: isDefaultAudioSource(modelData) ? audioTextColor : mutedTextColor
+                                font.family: iconFont
+                                font.pixelSize: 15
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Text {
+                                text: audioSourceName(modelData)
+                                color: textColor
+                                font.family: barFont
+                                font.pixelSize: 13
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+                        }
+
+                        MouseArea {
+                            id: sourceMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: setDefaultAudioSource(modelData)
                         }
                     }
                 }
@@ -2689,6 +3424,442 @@ PanelWindow {
                                 onClicked: connectWifiNetwork(modelData)
                             }
                         }
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: wifiPasswordOpen ? 104 : 0
+                        radius: 16
+                        color: "#33282828"
+                        border.color: "#18ffffff"
+                        border.width: 1
+                        visible: wifiPasswordOpen
+                        clip: true
+
+                        Column {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            spacing: 8
+
+                            Text {
+                                width: parent.width
+                                text: "Password for " + (wifiPasswordSsid || "network")
+                                color: textColor
+                                font.family: barFont
+                                font.pixelSize: 13
+                                elide: Text.ElideRight
+                            }
+
+                            Rectangle {
+                                width: parent.width
+                                height: 34
+                                radius: 17
+                                color: pillColor
+                                border.color: "#18ffffff"
+                                border.width: 1
+
+                                TextInput {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 12
+                                    anchors.rightMargin: 12
+                                    text: wifiPassword
+                                    focus: wifiPasswordOpen
+                                    activeFocusOnPress: true
+                                    echoMode: TextInput.Password
+                                    color: textColor
+                                    selectionColor: networkTextColor
+                                    selectedTextColor: "#121212"
+                                    font.family: barFont
+                                    font.pixelSize: 13
+                                    verticalAlignment: TextInput.AlignVCenter
+                                    clip: true
+                                    onTextChanged: wifiPassword = text
+                                    Keys.onReturnPressed: connectWifiWithPassword()
+                                }
+                            }
+
+                            RowLayout {
+                                width: parent.width
+                                height: 30
+                                spacing: 8
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 30
+                                    radius: 15
+                                    color: wifiConnectMouse.containsMouse ? activePillColor : pillColor
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "Connect"
+                                        color: networkTextColor
+                                        font.family: barFont
+                                        font.pixelSize: 12
+                                    }
+
+                                    MouseArea {
+                                        id: wifiConnectMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        onClicked: connectWifiWithPassword()
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 30
+                                    radius: 15
+                                    color: wifiCancelMouse.containsMouse ? "#44282828" : pillColor
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "Cancel"
+                                        color: mutedTextColor
+                                        font.family: barFont
+                                        font.pixelSize: 12
+                                    }
+
+                                    MouseArea {
+                                        id: wifiCancelMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        onClicked: {
+                                            wifiPasswordOpen = false;
+                                            wifiPassword = "";
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    PopupWindow {
+        id: notificationCenter
+        parentWindow: barWindow
+        visible: notificationCenterOpen || notificationCenterClosing
+        implicitWidth: 330
+        implicitHeight: notificationContent.implicitHeight
+        relativeX: popupXForItem(notificationPill, implicitWidth)
+        relativeY: popupYForItem(notificationPill)
+        color: "transparent"
+        grabFocus: notificationCenterOpen
+        onClosed: closeNotificationCenter()
+        onVisibleChanged: {
+            if (!visible) notificationCenterOpen = false;
+        }
+
+        Rectangle {
+            id: notificationContent
+            width: parent.width
+            y: notificationCenterOpen ? 0 : -popupAnimationOffset
+            opacity: notificationCenterOpen ? 1 : 0
+            scale: notificationCenterOpen ? 1 : 0.96
+            transformOrigin: Item.Top
+            implicitHeight: Math.min(notificationColumn.implicitHeight + 24, 430)
+            radius: 18
+            color: "#cc121212"
+            border.color: "#22ffffff"
+            border.width: 1
+            clip: true
+
+            Behavior on y { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+
+            Column {
+                id: notificationColumn
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 12
+                spacing: 10
+
+                RowLayout {
+                    width: parent.width
+                    height: 32
+                    spacing: 8
+
+                    Text {
+                        text: notificationsDnd ? "󰂛" : ""
+                        color: clockTextColor
+                        font.family: iconFont
+                        font.pixelSize: 17
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    Text {
+                        text: "Notifications"
+                        color: textColor
+                        font.family: barFont
+                        font.pixelSize: 15
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    Rectangle {
+                        Layout.preferredWidth: 58
+                        Layout.preferredHeight: 30
+                        radius: 15
+                        color: notificationsDnd ? activePillColor : pillColor
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: notificationsDnd ? "DND" : "On"
+                            color: clockTextColor
+                            font.family: barFont
+                            font.pixelSize: 12
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: toggleDoNotDisturb()
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.preferredWidth: 58
+                        Layout.preferredHeight: 30
+                        radius: 15
+                        color: pillColor
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Clear"
+                            color: mutedTextColor
+                            font.family: barFont
+                            font.pixelSize: 12
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: clearNotifications()
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    color: "#18ffffff"
+                }
+
+                Text {
+                    width: parent.width
+                    visible: notificationHistory.length === 0
+                    text: "No notifications"
+                    color: mutedTextColor
+                    font.family: barFont
+                    font.pixelSize: 13
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                Flickable {
+                    width: parent.width
+                    height: Math.min(notificationList.implicitHeight, 330)
+                    contentWidth: width
+                    contentHeight: notificationList.implicitHeight
+                    clip: true
+                    visible: notificationHistory.length > 0
+
+                    Column {
+                        id: notificationList
+                        width: parent.width
+                        spacing: 8
+
+                        Repeater {
+                            model: notificationHistory
+
+                            Rectangle {
+                                width: notificationList.width
+                                height: Math.max(58, notificationItemColumn.implicitHeight + 18)
+                                radius: 14
+                                color: pillColor
+
+                                Column {
+                                    id: notificationItemColumn
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.leftMargin: 12
+                                    anchors.rightMargin: 12
+                                    spacing: 3
+
+                                    Text {
+                                        width: parent.width
+                                        text: modelData.summary || modelData.appName || "Notification"
+                                        color: textColor
+                                        font.family: barFont
+                                        font.pixelSize: 13
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Text {
+                                        width: parent.width
+                                        text: modelData.body || modelData.appName || ""
+                                        color: mutedTextColor
+                                        font.family: barFont
+                                        font.pixelSize: 12
+                                        elide: Text.ElideRight
+                                        visible: text.length > 0
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    PopupWindow {
+        id: performancePopup
+        parentWindow: barWindow
+        visible: performancePopupOpen || performancePopupClosing
+        implicitWidth: 300
+        implicitHeight: performanceContent.implicitHeight
+        relativeX: popupXForItem(cpuPill, implicitWidth)
+        relativeY: popupYForItem(cpuPill)
+        color: "transparent"
+        grabFocus: performancePopupOpen
+        onClosed: closePerformancePopup()
+        onVisibleChanged: {
+            if (!visible) performancePopupOpen = false;
+        }
+
+        Rectangle {
+            id: performanceContent
+            width: parent.width
+            y: performancePopupOpen ? 0 : -popupAnimationOffset
+            opacity: performancePopupOpen ? 1 : 0
+            scale: performancePopupOpen ? 1 : 0.96
+            transformOrigin: Item.Top
+            implicitHeight: performanceColumn.implicitHeight + 24
+            radius: 18
+            color: "#cc121212"
+            border.color: "#22ffffff"
+            border.width: 1
+
+            Behavior on y { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
+
+            Column {
+                id: performanceColumn
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 12
+                spacing: 10
+
+                RowLayout {
+                    width: parent.width
+                    height: 32
+                    spacing: 8
+
+                    Text {
+                        text: ""
+                        color: cpuTextColor
+                        font.family: iconFont
+                        font.pixelSize: 17
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    Text {
+                        text: "Performance"
+                        color: textColor
+                        font.family: barFont
+                        font.pixelSize: 15
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    Rectangle {
+                        Layout.preferredWidth: 72
+                        Layout.preferredHeight: 30
+                        radius: 15
+                        color: perfRefreshMouse.containsMouse ? activePillColor : pillColor
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Refresh"
+                            color: networkTextColor
+                            font.family: barFont
+                            font.pixelSize: 12
+                        }
+
+                        MouseArea {
+                            id: perfRefreshMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: refreshPerformance()
+                        }
+                    }
+                }
+
+                Grid {
+                    width: parent.width
+                    columns: 2
+                    rowSpacing: 8
+                    columnSpacing: 8
+
+                    Repeater {
+                        model: [
+                            { label: "CPU", value: cpuUsage + "%" },
+                            { label: "Memory", value: memUsage + "%" },
+                            { label: "Load", value: performanceText.replace("Load: ", "") },
+                            { label: "Temp", value: temperatureText.replace("Temp: ", "") }
+                        ]
+
+                        Rectangle {
+                            width: (parent.width - 8) / 2
+                            height: 54
+                            radius: 14
+                            color: pillColor
+
+                            Column {
+                                anchors.centerIn: parent
+                                spacing: 4
+
+                                Text {
+                                    text: modelData.label
+                                    color: mutedTextColor
+                                    font.family: barFont
+                                    font.pixelSize: 11
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                }
+
+                                Text {
+                                    text: modelData.value.length > 0 ? modelData.value : "--"
+                                    color: textColor
+                                    font.family: barFont
+                                    font.pixelSize: 14
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 42
+                    radius: 14
+                    color: pillColor
+
+                    Text {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        text: processText || "Top: --"
+                        color: mutedTextColor
+                        font.family: barFont
+                        font.pixelSize: 12
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
                     }
                 }
             }

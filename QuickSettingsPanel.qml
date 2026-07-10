@@ -108,6 +108,8 @@ Item {
                             { icon: "", label: "Bluetooth", sub: root.bar.bluetoothText(), action: "bluetooth", active: Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.enabled },
                             { icon: root.bar.volumeIconText(), label: "Sound", sub: root.bar.volumeMuted ? "Muted" : root.bar.volumePercent + "%", action: "mute", active: !root.bar.volumeMuted },
                             { icon: "󰖨", label: "Display", sub: root.bar.displaySummary(), action: "display", active: true },
+                            { icon: root.bar.notificationsDnd ? "󰂛" : "", label: "Notifications", sub: root.bar.unreadNotifications > 0 ? root.bar.unreadNotifications + " unread" : root.bar.notificationsDnd ? "DND" : "Clear", action: "notifications", active: root.bar.unreadNotifications > 0 || root.bar.notificationsDnd },
+                            { icon: "󰓅", label: "Power mode", sub: root.bar.powerProfile, action: "power", active: root.bar.powerProfile === "performance" },
                             { icon: "󰂄", label: "Animations", sub: root.bar.hyprAnimationsEnabled ? "On" : "Off", action: "animations", active: root.bar.hyprAnimationsEnabled },
                             { icon: "󰖑", label: "Blur", sub: root.bar.hyprBlurEnabled ? "On" : "Off", action: "blur", active: root.bar.hyprBlurEnabled }
                         ]
@@ -163,6 +165,15 @@ Item {
                                     else if (modelData.action === "bluetooth" && Bluetooth.defaultAdapter) Bluetooth.defaultAdapter.enabled = !Bluetooth.defaultAdapter.enabled;
                                     else if (modelData.action === "mute") root.bar.toggleMute();
                                     else if (modelData.action === "display") root.bar.openHyprSettingsFromQuickSettings();
+                                    else if (modelData.action === "notifications") {
+                                        root.bar.closePopupsExcept("notifications");
+                                        root.bar.notificationCenterOpen = true;
+                                        root.bar.unreadNotifications = 0;
+                                    }
+                                    else if (modelData.action === "power") {
+                                        root.bar.closePopupsExcept("power");
+                                        root.bar.powerPopupOpen = true;
+                                    }
                                     else if (modelData.action === "animations") root.bar.toggleHyprAnimations();
                                     else if (modelData.action === "blur") root.bar.toggleHyprBlur();
                                 }
