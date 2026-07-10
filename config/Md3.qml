@@ -2,19 +2,19 @@ import QtQuick
 
 QtObject {
     readonly property color primary: "#8fd8ff"
-    readonly property color onPrimary: "#003548"
+    readonly property color textOnPrimary: "#003548"
     readonly property color primaryContainer: "#164d63"
-    readonly property color onPrimaryContainer: "#c4eaff"
+    readonly property color textOnPrimaryContainer: "#c4eaff"
 
     readonly property color secondary: "#b7c9d5"
-    readonly property color onSecondary: "#22323b"
+    readonly property color textOnSecondary: "#22323b"
     readonly property color secondaryContainer: "#384951"
-    readonly property color onSecondaryContainer: "#d3e5f0"
+    readonly property color textOnSecondaryContainer: "#d3e5f0"
 
     readonly property color error: "#ffb4ab"
-    readonly property color onError: "#690005"
+    readonly property color textOnError: "#690005"
     readonly property color errorContainer: "#93000a"
-    readonly property color onErrorContainer: "#ffdad6"
+    readonly property color textOnErrorContainer: "#ffdad6"
 
     readonly property color surface: "#101416"
     readonly property color surfaceDim: "#0b0f11"
@@ -24,8 +24,8 @@ QtObject {
     readonly property color surfaceContainer: "#1a1f22"
     readonly property color surfaceContainerHigh: "#252b2e"
     readonly property color surfaceContainerHighest: "#303639"
-    readonly property color onSurface: "#e1e3e5"
-    readonly property color onSurfaceVariant: "#c0c8cd"
+    readonly property color textOnSurface: "#e1e3e5"
+    readonly property color textOnSurfaceVariant: "#c0c8cd"
     readonly property color outline: "#8a9297"
     readonly property color outlineVariant: "#40484d"
     readonly property color scrim: "#000000"

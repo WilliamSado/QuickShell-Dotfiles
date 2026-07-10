@@ -13,11 +13,11 @@ Rectangle {
     property real hiddenScale: 0.94
     property real shownScale: 1.0
     property int animationMs: md3.motionMedium
-    property alias content: contentItem.data
+    default property alias content: contentItem.data
     property alias contentItem: contentItem
     property color panelColor: Qt.rgba(md3.surfaceContainer.r, md3.surfaceContainer.g, md3.surfaceContainer.b, md3.surfacePanelOpacity)
     property color outlineColor: "#26ffffff"
-    property color textColor: md3.onSurface
+    property color textColor: md3.textOnSurface
 
     Config.Md3 { id: md3 }
 
