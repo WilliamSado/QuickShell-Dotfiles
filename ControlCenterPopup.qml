@@ -12,6 +12,8 @@ Item {
     property string clipboardStatus: "Ready"
     property string captureStatus: "Ready"
     property bool recording: false
+    property var windowItems: []
+    property string windowStatus: "Ready"
 
     readonly property int relativeX: popup.relativeX
     readonly property int relativeY: popup.relativeY
@@ -40,6 +42,7 @@ Item {
     function pagePanelHeight() {
         if (root.bar.controlCenterPage === "clipboard") return 310;
         if (root.bar.controlCenterPage === "capture") return 292;
+        if (root.bar.controlCenterPage === "windows") return 350;
         if (root.bar.controlCenterPage === "focus") return 210;
         return 170;
     }
@@ -115,6 +118,84 @@ Item {
         runCapture("hyprpicker -a", "Color copied");
     }
 
+    function refreshWindows() {
+        windowStatus = "Loading";
+        windowListProc.running = true;
+    }
+
+    function parseWindows(text) {
+        try {
+            var clients = JSON.parse(text || "[]");
+            clients.sort(function(a, b) {
+                var aw = a.workspace && a.workspace.id !== undefined ? a.workspace.id : 999;
+                var bw = b.workspace && b.workspace.id !== undefined ? b.workspace.id : 999;
+                if (aw !== bw) return aw - bw;
+                return String(a.class || "").localeCompare(String(b.class || ""));
+            });
+            windowItems = clients;
+            windowStatus = clients.length > 0 ? clients.length + " windows" : "No windows";
+        } catch (error) {
+            windowItems = [];
+            windowStatus = "Could not parse windows";
+        }
+    }
+
+    function windowName(window) {
+        if (!window) return "Window";
+        var title = String(window.title || "").trim();
+        var app = String(window.class || window.initialClass || "").trim();
+        if (title.length > 0) return title;
+        return app.length > 0 ? app : "Window";
+    }
+
+    function windowSubtext(window) {
+        if (!window) return "";
+        var workspace = window.workspace && window.workspace.id !== undefined ? "ws " + window.workspace.id : "ws --";
+        var app = String(window.class || window.initialClass || "app").trim();
+        var flags = [];
+        if (window.floating) flags.push("floating");
+        if (window.fullscreen) flags.push("fullscreen");
+        if (window.pinned) flags.push("pinned");
+        return workspace + "  " + app + (flags.length > 0 ? "  " + flags.join(" ") : "");
+    }
+
+    function runWindowCommand(command, status, closePanel) {
+        windowStatus = status || "Running";
+        if (closePanel) root.bar.closeControlCenter();
+        windowCommandProc.command = ["sh", "-c", command];
+        windowCommandProc.running = true;
+    }
+
+    function focusWindow(window) {
+        if (!window || !window.address) return;
+        runWindowCommand("hyprctl dispatch focuswindow address:" + shellQuote(window.address), "Focused", true);
+    }
+
+    function closeWindow(window) {
+        if (!window || !window.address) return;
+        runWindowCommand("hyprctl dispatch closewindow address:" + shellQuote(window.address), "Closed", false);
+    }
+
+    function moveWindowToCurrentWorkspace(window) {
+        if (!window || !window.address) return;
+        runWindowCommand("ws=$(hyprctl activeworkspace -j | jq -r '.id'); hyprctl dispatch movetoworkspacesilent \"$ws,address:" + window.address + "\"", "Moved", false);
+    }
+
+    function toggleWindowFloating(window) {
+        if (!window || !window.address) return;
+        runWindowCommand("hyprctl dispatch togglefloating address:" + shellQuote(window.address), "Floating toggled", false);
+    }
+
+    function toggleWindowFullscreen(window) {
+        if (!window || !window.address) return;
+        runWindowCommand("hyprctl dispatch focuswindow address:" + shellQuote(window.address) + "; hyprctl dispatch fullscreen 1", "Fullscreen toggled", false);
+    }
+
+    function toggleWindowPin(window) {
+        if (!window || !window.address) return;
+        runWindowCommand("hyprctl dispatch focuswindow address:" + shellQuote(window.address) + "; hyprctl dispatch pin", "Pin toggled", false);
+    }
+
     PopupWindow {
         id: popup
         parentWindow: root.bar
@@ -128,6 +209,7 @@ Item {
         onClosed: root.bar.closeControlCenter()
         onVisibleChanged: {
             if (visible && root.bar.controlCenterPage === "clipboard") root.refreshClipboard();
+            if (visible && root.bar.controlCenterPage === "windows") root.refreshWindows();
         }
 
         Rectangle {
@@ -243,6 +325,7 @@ Item {
                                 onClicked: {
                                     root.bar.controlCenterPage = modelData.key;
                                     if (modelData.key === "clipboard") root.refreshClipboard();
+                                    if (modelData.key === "windows") root.refreshWindows();
                                 }
                             }
                         }
@@ -256,7 +339,7 @@ Item {
                     color: root.bar.sectionPillColor
 
                     Column {
-                        visible: root.bar.controlCenterPage !== "focus" && root.bar.controlCenterPage !== "clipboard" && root.bar.controlCenterPage !== "capture"
+                        visible: root.bar.controlCenterPage !== "focus" && root.bar.controlCenterPage !== "clipboard" && root.bar.controlCenterPage !== "capture" && root.bar.controlCenterPage !== "windows"
                         anchors.centerIn: parent
                         spacing: 8
 
@@ -282,6 +365,185 @@ Item {
                             color: root.bar.mutedTextColor
                             font.family: root.bar.barFont
                             font.pixelSize: 12
+                        }
+                    }
+
+                    Column {
+                        visible: root.bar.controlCenterPage === "windows"
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 14
+                        spacing: 10
+
+                        RowLayout {
+                            width: parent.width
+                            height: 32
+                            spacing: 8
+
+                            Text {
+                                text: "󰖯"
+                                color: root.bar.networkTextColor
+                                font.family: root.bar.iconFont
+                                font.pixelSize: 16
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Text {
+                                text: root.windowStatus
+                                color: root.bar.mutedTextColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 12
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                                elide: Text.ElideRight
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 72
+                                Layout.preferredHeight: 30
+                                radius: 15
+                                color: refreshWindowMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "Refresh"
+                                    color: root.bar.textColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 11
+                                }
+
+                                MouseArea {
+                                    id: refreshWindowMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: root.refreshWindows()
+                                }
+                            }
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: root.windowItems.length === 0
+                            text: root.windowStatus
+                            color: root.bar.mutedTextColor
+                            font.family: root.bar.barFont
+                            font.pixelSize: 13
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+
+                        Flickable {
+                            width: parent.width
+                            height: 276
+                            contentWidth: width
+                            contentHeight: windowList.implicitHeight
+                            clip: true
+                            visible: root.windowItems.length > 0
+
+                            Column {
+                                id: windowList
+                                width: parent.width
+                                spacing: 8
+
+                                Repeater {
+                                    model: root.windowItems
+
+                                    Rectangle {
+                                        id: windowCard
+                                        property var windowData: modelData
+
+                                        width: windowList.width
+                                        height: 86
+                                        radius: 15
+                                        color: windowItemMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+
+                                        Column {
+                                            anchors.left: parent.left
+                                            anchors.right: windowActions.left
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            anchors.leftMargin: 12
+                                            anchors.rightMargin: 10
+                                            spacing: 4
+
+                                            Text {
+                                                width: parent.width
+                                                text: root.windowName(modelData)
+                                                color: root.bar.textColor
+                                                font.family: root.bar.barFont
+                                                font.pixelSize: 12
+                                                elide: Text.ElideRight
+                                            }
+
+                                            Text {
+                                                width: parent.width
+                                                text: root.windowSubtext(modelData)
+                                                color: root.bar.mutedTextColor
+                                                font.family: root.bar.barFont
+                                                font.pixelSize: 11
+                                                elide: Text.ElideRight
+                                            }
+                                        }
+
+                                        Row {
+                                            id: windowActions
+                                            anchors.right: parent.right
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            anchors.rightMargin: 10
+                                            spacing: 6
+
+                                            Repeater {
+                                                model: [
+                                                    { icon: "󰌑", label: "focus", action: "focus" },
+                                                    { icon: "󰍉", label: "move", action: "move" },
+                                                    { icon: "󰹕", label: "float", action: "float" },
+                                                    { icon: "󰊓", label: "full", action: "full" },
+                                                    { icon: "󰐃", label: "pin", action: "pin" },
+                                                    { icon: "", label: "close", action: "close" }
+                                                ]
+
+                                                Rectangle {
+                                                    width: 28
+                                                    height: 28
+                                                    radius: 14
+                                                    color: winActionMouse.containsMouse ? root.bar.sectionPillColor : "transparent"
+
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: modelData.icon
+                                                        color: modelData.action === "close" ? root.bar.cpuTextColor : root.bar.textColor
+                                                        font.family: root.bar.iconFont
+                                                        font.pixelSize: 12
+                                                    }
+
+                                                    MouseArea {
+                                                        id: winActionMouse
+                                                        anchors.fill: parent
+                                                        hoverEnabled: true
+                                                        onClicked: {
+                                                            if (modelData.action === "focus") root.focusWindow(windowCard.windowData);
+                                                            else if (modelData.action === "move") root.moveWindowToCurrentWorkspace(windowCard.windowData);
+                                                            else if (modelData.action === "float") root.toggleWindowFloating(windowCard.windowData);
+                                                            else if (modelData.action === "full") root.toggleWindowFullscreen(windowCard.windowData);
+                                                            else if (modelData.action === "pin") root.toggleWindowPin(windowCard.windowData);
+                                                            else if (modelData.action === "close") root.closeWindow(windowCard.windowData);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: windowItemMouse
+                                            anchors.left: parent.left
+                                            anchors.right: windowActions.left
+                                            anchors.top: parent.top
+                                            anchors.bottom: parent.bottom
+                                            hoverEnabled: true
+                                            onClicked: root.focusWindow(modelData)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -683,5 +945,38 @@ Item {
     Process {
         id: recordStopProc
         command: ["pkill", "-INT", "wf-recorder"]
+    }
+
+    Process {
+        id: windowListProc
+        command: ["hyprctl", "clients", "-j"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: root.parseWindows(text)
+        }
+
+        onExited: function(exitCode) {
+            if (exitCode !== 0) {
+                root.windowItems = [];
+                root.windowStatus = "Could not read windows";
+            }
+        }
+    }
+
+    Process {
+        id: windowCommandProc
+        command: ["sh", "-c", "true"]
+        onExited: function(exitCode) {
+            if (exitCode !== 0) root.windowStatus = "Window action failed";
+            refreshWindowsTimer.restart();
+        }
+    }
+
+    Timer {
+        id: refreshWindowsTimer
+        interval: 220
+        repeat: false
+        onTriggered: root.refreshWindows()
     }
 }
