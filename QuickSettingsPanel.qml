@@ -116,6 +116,7 @@ Item {
                             { icon: root.bar.notificationsDnd ? "󰂛" : "", label: "Notifications", sub: root.bar.unreadNotifications > 0 ? root.bar.unreadNotifications + " unread" : root.bar.notificationsDnd ? "DND" : "Clear", action: "notifications", active: root.bar.unreadNotifications > 0 || root.bar.notificationsDnd },
                             { icon: "󰓅", label: "Power mode", sub: root.bar.powerProfile, action: "power", active: root.bar.powerProfile === "performance" },
                             { icon: "", label: "Launcher", sub: "Control center", action: "launcher", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "launcher" },
+                            { icon: "", label: "Clipboard", sub: "History", action: "clipboard", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "clipboard" },
                             { icon: "󰒲", label: "Focus", sub: root.bar.focusModeEnabled ? "DND on" : "Off", action: "focus", active: root.bar.focusModeEnabled },
                             { icon: "󰂄", label: "Animations", sub: root.bar.hyprAnimationsEnabled ? "On" : "Off", action: "animations", active: root.bar.hyprAnimationsEnabled },
                             { icon: "󰖑", label: "Blur", sub: root.bar.hyprBlurEnabled ? "On" : "Off", action: "blur", active: root.bar.hyprBlurEnabled }
@@ -182,6 +183,7 @@ Item {
                                         root.bar.powerPopupOpen = true;
                                     }
                                     else if (modelData.action === "launcher") root.bar.openControlCenterFromQuickSettings("launcher");
+                                    else if (modelData.action === "clipboard") root.bar.openControlCenterFromQuickSettings("clipboard");
                                     else if (modelData.action === "focus") root.bar.openControlCenterFromQuickSettings("focus");
                                     else if (modelData.action === "animations") root.bar.toggleHyprAnimations();
                                     else if (modelData.action === "blur") root.bar.toggleHyprBlur();

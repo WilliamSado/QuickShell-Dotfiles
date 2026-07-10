@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Io
 import QtQuick
 import QtQuick.Layouts
 
@@ -6,6 +7,9 @@ Item {
     id: root
 
     required property var bar
+
+    property var clipboardItems: []
+    property string clipboardStatus: "Ready"
 
     readonly property int relativeX: popup.relativeX
     readonly property int relativeY: popup.relativeY
@@ -27,6 +31,39 @@ Item {
         return "Control Center";
     }
 
+    function shellQuote(value) {
+        return "'" + String(value).replace(/'/g, "'\\''") + "'";
+    }
+
+    function pagePanelHeight() {
+        if (root.bar.controlCenterPage === "clipboard") return 310;
+        if (root.bar.controlCenterPage === "focus") return 210;
+        return 170;
+    }
+
+    function refreshClipboard() {
+        clipboardStatus = "Loading";
+        clipboardListProc.running = true;
+    }
+
+    function clipboardPreview(line) {
+        var text = String(line || "").replace(/^\s*\d+\s+/, "");
+        text = text.replace(/\s+/g, " ").trim();
+        return text.length > 0 ? text : "Clipboard item";
+    }
+
+    function copyClipboardItem(line) {
+        if (!line) return;
+        clipboardStatus = "Copied";
+        clipboardCopyProc.command = ["sh", "-c", "printf '%s' " + shellQuote(line) + " | cliphist decode | wl-copy"];
+        clipboardCopyProc.running = true;
+    }
+
+    function clearClipboard() {
+        clipboardStatus = "Clearing";
+        clipboardClearProc.running = true;
+    }
+
     PopupWindow {
         id: popup
         parentWindow: root.bar
@@ -38,6 +75,9 @@ Item {
         color: "transparent"
         grabFocus: false
         onClosed: root.bar.closeControlCenter()
+        onVisibleChanged: {
+            if (visible && root.bar.controlCenterPage === "clipboard") root.refreshClipboard();
+        }
 
         Rectangle {
             id: controlCenterPanel
@@ -149,7 +189,10 @@ Item {
                                 id: tabMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                onClicked: root.bar.controlCenterPage = modelData.key
+                                onClicked: {
+                                    root.bar.controlCenterPage = modelData.key;
+                                    if (modelData.key === "clipboard") root.refreshClipboard();
+                                }
                             }
                         }
                     }
@@ -157,12 +200,12 @@ Item {
 
                 Rectangle {
                     width: parent.width
-                    height: root.bar.controlCenterPage === "focus" ? 210 : 170
+                    height: root.pagePanelHeight()
                     radius: 18
                     color: root.bar.sectionPillColor
 
                     Column {
-                        visible: root.bar.controlCenterPage !== "focus"
+                        visible: root.bar.controlCenterPage !== "focus" && root.bar.controlCenterPage !== "clipboard"
                         anchors.centerIn: parent
                         spacing: 8
 
@@ -188,6 +231,139 @@ Item {
                             color: root.bar.mutedTextColor
                             font.family: root.bar.barFont
                             font.pixelSize: 12
+                        }
+                    }
+
+                    Column {
+                        visible: root.bar.controlCenterPage === "clipboard"
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 14
+                        spacing: 10
+
+                        RowLayout {
+                            width: parent.width
+                            height: 32
+                            spacing: 8
+
+                            Text {
+                                text: ""
+                                color: root.bar.networkTextColor
+                                font.family: root.bar.iconFont
+                                font.pixelSize: 16
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Text {
+                                text: root.clipboardStatus
+                                color: root.bar.mutedTextColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 12
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                                elide: Text.ElideRight
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 72
+                                Layout.preferredHeight: 30
+                                radius: 15
+                                color: refreshClipMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "Refresh"
+                                    color: root.bar.textColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 11
+                                }
+
+                                MouseArea {
+                                    id: refreshClipMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: root.refreshClipboard()
+                                }
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 58
+                                Layout.preferredHeight: 30
+                                radius: 15
+                                color: clearClipMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "Clear"
+                                    color: root.bar.mutedTextColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 11
+                                }
+
+                                MouseArea {
+                                    id: clearClipMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: root.clearClipboard()
+                                }
+                            }
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: root.clipboardItems.length === 0
+                            text: root.clipboardStatus === "Ready" ? "No clipboard history" : root.clipboardStatus
+                            color: root.bar.mutedTextColor
+                            font.family: root.bar.barFont
+                            font.pixelSize: 13
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+
+                        Flickable {
+                            width: parent.width
+                            height: 236
+                            contentWidth: width
+                            contentHeight: clipboardList.implicitHeight
+                            clip: true
+                            visible: root.clipboardItems.length > 0
+
+                            Column {
+                                id: clipboardList
+                                width: parent.width
+                                spacing: 8
+
+                                Repeater {
+                                    model: root.clipboardItems
+
+                                    Rectangle {
+                                        width: clipboardList.width
+                                        height: 42
+                                        radius: 13
+                                        color: clipItemMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+
+                                        Text {
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            anchors.leftMargin: 12
+                                            anchors.rightMargin: 12
+                                            text: root.clipboardPreview(modelData)
+                                            color: root.bar.textColor
+                                            font.family: root.bar.barFont
+                                            font.pixelSize: 12
+                                            elide: Text.ElideRight
+                                        }
+
+                                        MouseArea {
+                                            id: clipItemMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            onClicked: root.copyClipboardItem(modelData)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -288,6 +464,43 @@ Item {
                     }
                 }
             }
+        }
+    }
+
+    Process {
+        id: clipboardListProc
+        command: ["sh", "-c", "if command -v cliphist >/dev/null 2>&1; then cliphist list | head -n 40; else exit 127; fi"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var lines = String(text || "").split("\n").filter(function(line) {
+                    return line.trim().length > 0;
+                });
+                root.clipboardItems = lines;
+                root.clipboardStatus = lines.length > 0 ? lines.length + " items" : "No clipboard history";
+            }
+        }
+
+        onExited: function(exitCode) {
+            if (exitCode !== 0) {
+                root.clipboardItems = [];
+                root.clipboardStatus = "cliphist unavailable";
+            }
+        }
+    }
+
+    Process {
+        id: clipboardCopyProc
+        command: ["sh", "-c", "true"]
+    }
+
+    Process {
+        id: clipboardClearProc
+        command: ["sh", "-c", "if command -v cliphist >/dev/null 2>&1; then cliphist wipe; else exit 127; fi"]
+        onExited: function(exitCode) {
+            root.clipboardItems = [];
+            root.clipboardStatus = exitCode === 0 ? "Cleared" : "cliphist unavailable";
         }
     }
 }
