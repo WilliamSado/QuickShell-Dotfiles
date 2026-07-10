@@ -1323,6 +1323,10 @@ PanelWindow {
         return day !== "" && day === new Date().getDate();
     }
 
+    function calendarTodayTextColor() {
+        return themeMode === "light" ? textColor : clockTextColor;
+    }
+
     function toggleMute() {
         volumeMuted = !volumeMuted;
         if (!settingsRestoring) persistSettings();
@@ -4084,14 +4088,14 @@ PanelWindow {
                             width: (clockPopupColumn.width - 36) / 7
                             height: width
                             radius: width / 2
-                            color: isToday ? clockTextColor : "transparent"
+                            color: isToday ? activePillColor : "transparent"
                             border.color: isToday ? clockTextColor : "transparent"
                             border.width: isToday ? 1 : 0
 
                             Text {
                                 anchors.centerIn: parent
                                 text: parent.day
-                                color: parent.isToday ? "#121212" : (parent.day === "" ? "transparent" : textColor)
+                                color: parent.isToday ? calendarTodayTextColor() : (parent.day === "" ? "transparent" : textColor)
                                 font.family: barFont
                                 font.pixelSize: 13
                             }
