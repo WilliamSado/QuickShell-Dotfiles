@@ -9,8 +9,8 @@ Item {
     property string themeName: "Tela Cyan"
     property string wallpaperPath: ""
     property var wallpaperDirectories: ["/home/sado/Pictures/wallpapers"]
-    property int popupAnimationMs: 160
-    property int popupAnimationOffset: 10
+    property int popupAnimationMs: 190
+    property int popupAnimationOffset: 18
     property bool hyprBlurEnabled: true
     property int hyprBlurSize: 8
     property int hyprBlurPasses: 2

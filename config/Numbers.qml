@@ -12,8 +12,8 @@ QtObject {
     property int traySpacing: 10
     property int groupSpacing: 6
     property int popupRadius: 18
-    property int popupAnimationMs: 140
-    property int popupAnimationOffset: 8
+    property int popupAnimationMs: 190
+    property int popupAnimationOffset: 18
     property int memoryPillWidth: 88
     property int cpuPillWidth: 82
     property int quickSettingsWidth: 390
