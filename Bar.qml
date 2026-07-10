@@ -21,7 +21,7 @@ PanelWindow {
     anchors.right: true
     implicitHeight: 52
     color: "transparent"
-    focusable: hyprSettingsOpen || launcherOpen || clipboardOpen || captureOpen || windowSwitcherOpen
+    focusable: hyprSettingsOpen
     WlrLayershell.keyboardFocus: focusable ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     Config.Numbers { id: numbers }
@@ -159,6 +159,7 @@ PanelWindow {
     property int unreadNotifications: 0
     property bool settingsApplyingStored: false
     property bool settingsRestoring: false
+    property bool controlCenterExtrasEnabled: false
     property string hyprStatusText: "Ready"
     property string hyprCommandErrorText: ""
     property string hyprMonitorName: "Unknown"
@@ -471,32 +472,50 @@ PanelWindow {
     }
 
     function openLauncher() {
+        if (!controlCenterExtrasEnabled) {
+            quickSettingsStatusText = "Launcher disabled";
+            return;
+        }
         closePopupsExcept("launcher");
         launcherOpen = true;
         Qt.callLater(function() {
-            launcherPanel.refresh();
-            launcherPanel.focusSearch();
+            if (launcherPanel.item) {
+                launcherPanel.item.refresh();
+                launcherPanel.item.focusSearch();
+            }
         });
     }
 
     function openClipboardPanel() {
+        if (!controlCenterExtrasEnabled) {
+            quickSettingsStatusText = "Clipboard disabled";
+            return;
+        }
         closePopupsExcept("clipboard");
         clipboardOpen = true;
         Qt.callLater(function() {
-            clipboardPanel.refresh();
+            if (clipboardPanel.item) clipboardPanel.item.refresh();
         });
     }
 
     function openCapturePanel() {
+        if (!controlCenterExtrasEnabled) {
+            quickSettingsStatusText = "Capture disabled";
+            return;
+        }
         closePopupsExcept("capture");
         captureOpen = true;
     }
 
     function openWindowSwitcher() {
+        if (!controlCenterExtrasEnabled) {
+            quickSettingsStatusText = "Window switcher disabled";
+            return;
+        }
         closePopupsExcept("windowSwitcher");
         windowSwitcherOpen = true;
         Qt.callLater(function() {
-            windowSwitcherPanel.refresh();
+            if (windowSwitcherPanel.item) windowSwitcherPanel.item.refresh();
         });
     }
 
@@ -4211,23 +4230,35 @@ PanelWindow {
         bar: barWindow
     }
 
-    LauncherPanel {
+    Loader {
         id: launcherPanel
-        bar: barWindow
+        active: controlCenterExtrasEnabled
+        sourceComponent: LauncherPanel {
+            bar: barWindow
+        }
     }
 
-    ClipboardPanel {
+    Loader {
         id: clipboardPanel
-        bar: barWindow
+        active: controlCenterExtrasEnabled
+        sourceComponent: ClipboardPanel {
+            bar: barWindow
+        }
     }
 
-    CapturePanel {
+    Loader {
         id: capturePanel
-        bar: barWindow
+        active: controlCenterExtrasEnabled
+        sourceComponent: CapturePanel {
+            bar: barWindow
+        }
     }
 
-    WindowSwitcherPanel {
+    Loader {
         id: windowSwitcherPanel
-        bar: barWindow
+        active: controlCenterExtrasEnabled
+        sourceComponent: WindowSwitcherPanel {
+            bar: barWindow
+        }
     }
 }

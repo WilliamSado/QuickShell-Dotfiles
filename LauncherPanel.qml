@@ -102,7 +102,7 @@ Item {
         relativeX: Math.max(root.bar.barSideMargin, (root.bar.width - implicitWidth) / 2)
         relativeY: root.bar.implicitHeight + 24
         color: "transparent"
-        grabFocus: root.bar.launcherOpen
+        grabFocus: false
         onClosed: root.bar.closeLauncher()
 
         FluidPanel {
