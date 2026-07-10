@@ -20,6 +20,8 @@ PanelWindow {
     anchors.right: true
     implicitHeight: 52
     color: "transparent"
+    focusable: hyprSettingsOpen
+    WlrLayershell.keyboardFocus: hyprSettingsOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     Config.Numbers { id: numbers }
     Config.Colors { id: colors }
@@ -83,6 +85,7 @@ PanelWindow {
     property string networkPopupMode: "active"
     property string hyprWallpaperPath: ""
     property string hyprStatusText: "Ready"
+    property string hyprCommandErrorText: ""
     property string hyprMonitorName: "Unknown"
     property string hyprMonitorModel: "Display"
     property string hyprMonitorText: "No monitor data"
@@ -537,6 +540,7 @@ PanelWindow {
     }
 
     function runHyprCommand(command, statusText) {
+        hyprCommandErrorText = "";
         hyprStatusText = statusText || "Running";
         hyprCommandProc.command = ["sh", "-c", command];
         hyprCommandProc.running = true;
@@ -664,14 +668,26 @@ PanelWindow {
     }
 
     function applyWallpaper() {
+        hyprWallpaperPath = cleanInputPath(hyprWallpaperPath);
         if (hyprWallpaperPath.length === 0) {
             hyprStatusText = "Wallpaper path is empty";
             return;
         }
 
         var path = shellQuote(hyprWallpaperPath);
-        var hyprpaperTarget = shellQuote("," + hyprWallpaperPath);
-        runHyprCommand("if command -v swww >/dev/null 2>&1; then swww img " + path + " --transition-type grow --transition-duration 0.35; elif command -v hyprctl >/dev/null 2>&1; then hyprctl hyprpaper preload " + path + "; hyprctl hyprpaper wallpaper " + hyprpaperTarget + "; else exit 1; fi", "Applying wallpaper");
+        var monitor = hyprMonitorName && hyprMonitorName !== "Unknown" && hyprMonitorName !== "Display" ? hyprMonitorName : "";
+        var targetMonitor = monitor.length > 0 ? monitor : "DP-1";
+        var configPath = shellQuote("/home/sado/.config/hypr/conf.d/hyprpaper.d/wallpapers.conf");
+        var hyprpaperConfig = shellQuote("/home/sado/.config/hypr/hyprpaper.conf");
+        var configCommand = "printf '%s\\n' "
+            + shellQuote("# Wallpapers") + " "
+            + shellQuote("wallpaper {") + " "
+            + shellQuote("    monitor = " + targetMonitor) + " "
+            + shellQuote("    path = " + hyprWallpaperPath) + " "
+            + shellQuote("    fit_mode = cover") + " "
+            + shellQuote("}") + " > " + configPath;
+
+        runHyprCommand("if command -v swww >/dev/null 2>&1; then swww img " + path + " --transition-type grow --transition-duration 0.35; elif command -v setsid >/dev/null 2>&1 && command -v hyprpaper >/dev/null 2>&1; then test -f " + path + " || exit 1; " + configCommand + "; pkill -x hyprpaper >/dev/null 2>&1 || true; setsid -f hyprpaper --config " + hyprpaperConfig + " >/tmp/hyprpaper-quickshell.log 2>&1; else exit 1; fi", "Applying wallpaper");
     }
 
     function applyHyprSpacing() {
@@ -716,6 +732,27 @@ PanelWindow {
         closeQuickSettings();
         hyprSettingsOpen = true;
         refreshHyprMonitors();
+        Qt.callLater(function() {
+            hyprSettingsPopup.focusWallpaperInput();
+        });
+    }
+
+    function pasteClipboardInto(input) {
+        if (!input) return;
+
+        var text = Quickshell.clipboardText || "";
+        if (text.length === 0) return;
+
+        var start = Math.min(input.selectionStart, input.selectionEnd);
+        var end = Math.max(input.selectionStart, input.selectionEnd);
+        if (start !== end) input.remove(start, end);
+
+        input.insert(start, text);
+        input.cursorPosition = start + text.length;
+    }
+
+    function cleanInputPath(text) {
+        return String(text || "").replace(/^\s+|\s+$/g, "");
     }
 
     function formatAppName(name) {
@@ -1046,7 +1083,13 @@ PanelWindow {
     Process {
         id: hyprCommandProc
         command: ["sh", "-c", "echo"]
-        onExited: hyprStatusText = "Done"
+        stderr: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: hyprCommandErrorText = text.trim()
+        }
+        onExited: function(exitCode, exitStatus) {
+            hyprStatusText = exitCode === 0 ? "Done" : (hyprCommandErrorText.length > 0 ? hyprCommandErrorText : "Failed");
+        }
     }
 
     Process {
@@ -1302,15 +1345,36 @@ PanelWindow {
                         model: SystemTray.items
 
                         IconImage {
+                            id: trayIcon
                             source: modelData.icon
                             width: trayIconSize
                             height: trayIconSize
                             anchors.verticalCenter: parent.verticalCenter
 
+                            QsMenuAnchor {
+                                id: trayMenu
+                                menu: modelData.menu
+                                anchor.item: trayIcon
+                                anchor.edges: Edges.Bottom
+                                anchor.gravity: Edges.Bottom
+                            }
+
+                            function openMenu() {
+                                if (modelData.hasMenu) trayMenu.open();
+                            }
+
                             MouseArea {
                                 anchors.fill: parent
-                                acceptedButtons: Qt.LeftButton | Qt.RightButton
-                                onClicked: function(mouse) { mouse.button === Qt.RightButton ? modelData.secondaryActivate() : modelData.activate() }
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                                onClicked: function(mouse) {
+                                    if (mouse.button === Qt.RightButton || modelData.onlyMenu) {
+                                        trayIcon.openMenu();
+                                    } else if (mouse.button === Qt.MiddleButton) {
+                                        modelData.secondaryActivate();
+                                    } else {
+                                        modelData.activate();
+                                    }
+                                }
                                 onWheel: function(wheel) { modelData.scroll(wheel.angleDelta.y, false) }
                             }
                         }
@@ -2723,831 +2787,13 @@ PanelWindow {
         }
     }
 
-    PopupWindow {
+    HyprSettingsPopup {
         id: hyprSettingsPopup
-        parentWindow: barWindow
-        visible: hyprSettingsOpen || hyprSettingsClosing
-        implicitWidth: 620
-        implicitHeight: hyprSettingsContent.implicitHeight
-        relativeX: Math.max(barSideMargin, (barWindow.width - implicitWidth) / 2)
-        relativeY: barWindow.implicitHeight + 14
-        color: "transparent"
-        grabFocus: hyprSettingsOpen
-        onClosed: closeHyprSettings()
-        onVisibleChanged: {
-            if (!visible) hyprSettingsOpen = false;
-            if (visible) refreshHyprMonitors();
-        }
-
-        Rectangle {
-            id: hyprSettingsContent
-            width: parent.width
-            y: hyprSettingsOpen ? 0 : -popupAnimationOffset
-            opacity: hyprSettingsOpen ? 1 : 0
-            scale: hyprSettingsOpen ? 1 : 0.96
-            transformOrigin: Item.Top
-            implicitHeight: hyprSettingsColumn.implicitHeight + 28
-            radius: 18
-            color: "#cc121212"
-            border.color: "#22ffffff"
-            border.width: 1
-
-            Behavior on y { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
-            Behavior on opacity { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
-            Behavior on scale { NumberAnimation { duration: popupAnimationMs; easing.type: Easing.OutCubic } }
-
-            Column {
-                id: hyprSettingsColumn
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: 14
-                spacing: 12
-
-                RowLayout {
-                    width: parent.width
-                    height: 32
-                    spacing: 10
-
-                    Text {
-                        text: ""
-                        color: networkTextColor
-                        font.family: iconFont
-                        font.pixelSize: 20
-                        Layout.alignment: Qt.AlignVCenter
-                    }
-
-                    Text {
-                        text: "Hyprland Settings"
-                        color: textColor
-                        font.family: barFont
-                        font.pixelSize: 16
-                        Layout.fillWidth: true
-                        Layout.alignment: Qt.AlignVCenter
-                    }
-
-                    Rectangle {
-                        Layout.preferredWidth: hyprStatusLabel.implicitWidth + 18
-                        Layout.preferredHeight: 28
-                        radius: 14
-                        color: pillColor
-
-                        Text {
-                            id: hyprStatusLabel
-                            anchors.centerIn: parent
-                            text: hyprStatusText
-                            color: networkTextColor
-                            font.family: barFont
-                            font.pixelSize: 12
-                        }
-                    }
-
-                    Rectangle {
-                        Layout.preferredWidth: 30
-                        Layout.preferredHeight: 30
-                        radius: 15
-                        color: closeSettingsMouse.containsMouse ? "#44282828" : pillColor
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: ""
-                            color: mutedTextColor
-                            font.family: iconFont
-                            font.pixelSize: 13
-                        }
-
-                        MouseArea {
-                            id: closeSettingsMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: closeHyprSettings()
-                        }
-                    }
-                }
-
-                Rectangle {
-                    width: parent.width
-                    height: 1
-                    color: "#18ffffff"
-                }
-
-                Column {
-                    width: parent.width
-                    spacing: 8
-
-                    Text {
-                        text: "Wallpaper"
-                        color: mutedTextColor
-                        font.family: barFont
-                        font.pixelSize: 13
-                    }
-
-                    RowLayout {
-                        width: parent.width
-                        height: 36
-                        spacing: 8
-
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 36
-                            radius: 12
-                            color: pillColor
-                            border.color: "#18ffffff"
-                            border.width: 1
-
-                            TextInput {
-                                id: wallpaperInput
-                                anchors.fill: parent
-                                anchors.leftMargin: 12
-                                anchors.rightMargin: 12
-                                text: hyprWallpaperPath
-                                color: textColor
-                                selectionColor: networkTextColor
-                                selectedTextColor: "#121212"
-                                font.family: barFont
-                                font.pixelSize: 13
-                                verticalAlignment: TextInput.AlignVCenter
-                                clip: true
-                                onEditingFinished: hyprWallpaperPath = text
-                            }
-                        }
-
-                        Rectangle {
-                            Layout.preferredWidth: 86
-                            Layout.preferredHeight: 36
-                            radius: 18
-                            color: wallpaperApplyMouse.containsMouse ? activePillColor : pillColor
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "Apply"
-                                color: networkTextColor
-                                font.family: barFont
-                                font.pixelSize: 13
-                            }
-
-                            MouseArea {
-                                id: wallpaperApplyMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onClicked: {
-                                    hyprWallpaperPath = wallpaperInput.text;
-                                    applyWallpaper();
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Rectangle {
-                    width: parent.width
-                    height: 1
-                    color: "#18ffffff"
-                }
-
-                Column {
-                    width: parent.width
-                    spacing: 8
-
-                    RowLayout {
-                        width: parent.width
-                        height: 28
-                        spacing: 8
-
-                        Text {
-                            text: "Display"
-                            color: mutedTextColor
-                            font.family: barFont
-                            font.pixelSize: 13
-                            Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignVCenter
-                        }
-
-                        Text {
-                            text: hyprMonitorText
-                            color: textColor
-                            font.family: barFont
-                            font.pixelSize: 12
-                            elide: Text.ElideRight
-                            horizontalAlignment: Text.AlignRight
-                            Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignVCenter
-                        }
-                    }
-
-                    Grid {
-                        width: parent.width
-                        columns: 4
-                        rowSpacing: 8
-                        columnSpacing: 8
-
-                        Repeater {
-                            model: [
-                                { label: "Refresh", mode: "refresh" },
-                                { label: "Preferred", mode: "preferred" },
-                                { label: "1920x1080", mode: "1920x1080@60" },
-                                { label: "2560x1440", mode: "2560x1440@60" },
-                                { label: "3440x1440", mode: "3440x1440@144" },
-                                { label: "3840x2160", mode: "3840x2160@60" },
-                                { label: "Scale 1.0", scale: 1.0 },
-                                { label: "Scale 1.25", scale: 1.25 },
-                                { label: "Scale 1.5", scale: 1.5 },
-                                { label: "Scale 1.75", scale: 1.75 },
-                                { label: "Scale 2.0", scale: 2.0 },
-                                { label: "Reload", mode: "reload" }
-                            ]
-
-                            Rectangle {
-                                width: (hyprSettingsColumn.width - 24) / 4
-                                height: 34
-                                radius: 17
-                                color: hyprDisplayMouse.containsMouse ? activePillColor : pillColor
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData.label
-                                    color: networkTextColor
-                                    font.family: barFont
-                                    font.pixelSize: 12
-                                }
-
-                                MouseArea {
-                                    id: hyprDisplayMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    onClicked: {
-                                        if (modelData.mode === "refresh") refreshHyprMonitors();
-                                        else if (modelData.mode === "reload") runHyprCommand("hyprctl reload", "Reloading");
-                                        else if (modelData.mode) applyMonitorMode(modelData.mode);
-                                        else applyMonitorScale(modelData.scale);
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    RowLayout {
-                        width: parent.width
-                        height: 34
-                        spacing: 8
-
-                        Text {
-                            text: "Refresh rate"
-                            color: mutedTextColor
-                            font.family: barFont
-                            font.pixelSize: 12
-                            Layout.preferredWidth: 92
-                            Layout.alignment: Qt.AlignVCenter
-                        }
-
-                        Repeater {
-                            model: hyprRefreshRates
-
-                            Rectangle {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 34
-                                radius: 17
-                                color: Math.round(hyprMonitorRefreshRate) === modelData ? activePillColor : pillColor
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData + "Hz"
-                                    color: networkTextColor
-                                    font.family: barFont
-                                    font.pixelSize: 12
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    onClicked: applyMonitorRefresh(modelData)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Rectangle {
-                    width: parent.width
-                    height: 1
-                    color: "#18ffffff"
-                }
-
-                RowLayout {
-                    width: parent.width
-                    height: 72
-                    spacing: 10
-
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        radius: 14
-                        color: pillColor
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: 12
-                            spacing: 8
-
-                            Text {
-                                text: "Gaps"
-                                color: mutedTextColor
-                                font.family: barFont
-                                font.pixelSize: 13
-                                Layout.fillWidth: true
-                                Layout.alignment: Qt.AlignVCenter
-                            }
-
-                            Text {
-                                text: hyprGaps
-                                color: textColor
-                                font.family: barFont
-                                font.pixelSize: 16
-                                horizontalAlignment: Text.AlignHCenter
-                                Layout.preferredWidth: 36
-                                Layout.alignment: Qt.AlignVCenter
-                            }
-
-                            Repeater {
-                                model: [
-                                    { label: "-", delta: -1 },
-                                    { label: "+", delta: 1 },
-                                    { label: "Apply", apply: true }
-                                ]
-
-                                Rectangle {
-                                    Layout.preferredWidth: modelData.apply ? 72 : 34
-                                    Layout.preferredHeight: 34
-                                    radius: 17
-                                    color: gapsMouse.containsMouse ? activePillColor : sectionPillColor
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: modelData.label
-                                        color: networkTextColor
-                                        font.family: barFont
-                                        font.pixelSize: 13
-                                    }
-
-                                    MouseArea {
-                                        id: gapsMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        onClicked: {
-                                            if (modelData.apply) applyHyprSpacing();
-                                            else hyprGaps = Math.max(0, Math.min(30, hyprGaps + modelData.delta));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        radius: 14
-                        color: pillColor
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: 12
-                            spacing: 8
-
-                            Text {
-                                text: "Rounding"
-                                color: mutedTextColor
-                                font.family: barFont
-                                font.pixelSize: 13
-                                Layout.fillWidth: true
-                                Layout.alignment: Qt.AlignVCenter
-                            }
-
-                            Text {
-                                text: hyprRounding
-                                color: textColor
-                                font.family: barFont
-                                font.pixelSize: 16
-                                horizontalAlignment: Text.AlignHCenter
-                                Layout.preferredWidth: 36
-                                Layout.alignment: Qt.AlignVCenter
-                            }
-
-                            Repeater {
-                                model: [
-                                    { label: "-", delta: -1 },
-                                    { label: "+", delta: 1 },
-                                    { label: "Apply", apply: true }
-                                ]
-
-                                Rectangle {
-                                    Layout.preferredWidth: modelData.apply ? 72 : 34
-                                    Layout.preferredHeight: 34
-                                    radius: 17
-                                    color: roundingMouse.containsMouse ? activePillColor : sectionPillColor
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: modelData.label
-                                        color: networkTextColor
-                                        font.family: barFont
-                                        font.pixelSize: 13
-                                    }
-
-                                    MouseArea {
-                                        id: roundingMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        onClicked: {
-                                            if (modelData.apply) applyHyprRounding();
-                                            else hyprRounding = Math.max(0, Math.min(30, hyprRounding + modelData.delta));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                RowLayout {
-                    width: parent.width
-                    height: 38
-                    spacing: 8
-
-                    Repeater {
-                        model: [
-                            { label: hyprAnimationsEnabled ? "Animations on" : "Animations off", action: "animations" },
-                            { label: hyprBlurEnabled ? "Blur on" : "Blur off", action: "blur" },
-                            { label: "Reload Hyprland", action: "reload" }
-                        ]
-
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 38
-                            radius: 19
-                            color: effectsMouse.containsMouse ? activePillColor : pillColor
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: modelData.label
-                                color: networkTextColor
-                                font.family: barFont
-                                font.pixelSize: 13
-                            }
-
-                            MouseArea {
-                                id: effectsMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onClicked: {
-                                    if (modelData.action === "animations") toggleHyprAnimations();
-                                    else if (modelData.action === "blur") toggleHyprBlur();
-                                    else runHyprCommand("hyprctl reload", "Reloading");
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        bar: barWindow
     }
 
-    PopupWindow {
+    QuickSettingsPanel {
         id: quickSettingsWindow
-        parentWindow: barWindow
-        visible: quickSettingsOpen || quickSettingsClosing
-        implicitWidth: quickSettingsWidth
-        implicitHeight: quickSettingsPanel.implicitHeight
-        relativeX: Math.max(barSideMargin, barWindow.width - implicitWidth - barSideMargin)
-        relativeY: barWindow.implicitHeight + 22
-        color: "transparent"
-        grabFocus: quickSettingsOpen
-        onClosed: closeQuickSettings()
-        onVisibleChanged: {
-            if (!visible) quickSettingsOpen = false;
-        }
-
-        Rectangle {
-            id: quickSettingsPanel
-            width: parent.width
-            x: quickSettingsOpen ? 0 : parent.width
-            implicitHeight: quickSettingsColumn.implicitHeight + 36
-            radius: 24
-            color: "#dd121212"
-            border.color: "#22ffffff"
-            border.width: 1
-
-            Behavior on x { NumberAnimation { duration: popupAnimationMs + 40; easing.type: Easing.OutCubic } }
-
-            MouseArea {
-                anchors.fill: parent
-                property real pressX: 0
-
-                onPressed: function(mouse) {
-                    pressX = mouse.x;
-                }
-
-                onPositionChanged: function(mouse) {
-                    if (pressed && mouse.x > pressX + 80) closeQuickSettings();
-                }
-            }
-
-            Column {
-                id: quickSettingsColumn
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: 18
-                spacing: 14
-
-                RowLayout {
-                    width: parent.width
-                    height: 46
-                    spacing: 10
-
-                    Column {
-                        Layout.fillWidth: true
-                        Layout.alignment: Qt.AlignVCenter
-                        spacing: 2
-
-                        Text {
-                            text: Qt.formatTime(new Date(), "hh:mm")
-                            color: textColor
-                            font.family: barFont
-                            font.pixelSize: 28
-                        }
-
-                        Text {
-                            text: Qt.formatDate(new Date(), "yyyy-MM-dd ddd")
-                            color: mutedTextColor
-                            font.family: barFont
-                            font.pixelSize: 12
-                        }
-                    }
-
-                    Rectangle {
-                        Layout.preferredWidth: 42
-                        Layout.preferredHeight: 42
-                        radius: 21
-                        color: closeQuickMouse.containsMouse ? activePillColor : pillColor
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: ""
-                            color: textColor
-                            font.family: iconFont
-                            font.pixelSize: 15
-                        }
-
-                        MouseArea {
-                            id: closeQuickMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: closeQuickSettings()
-                        }
-                    }
-                }
-
-                Grid {
-                    width: parent.width
-                    columns: 2
-                    rowSpacing: 10
-                    columnSpacing: 10
-
-                    Repeater {
-                        model: [
-                            { icon: "", label: "WiFi", sub: networkText(), action: "wifi", active: networkText() !== "Disconnected" },
-                            { icon: "", label: "Bluetooth", sub: bluetoothText(), action: "bluetooth", active: Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.enabled },
-                            { icon: volumeIconText(), label: "Sound", sub: volumeMuted ? "Muted" : volumePercent + "%", action: "mute", active: !volumeMuted },
-                            { icon: "󰖨", label: "Display", sub: displaySummary(), action: "display", active: true },
-                            { icon: "󰂄", label: "Animations", sub: hyprAnimationsEnabled ? "On" : "Off", action: "animations", active: hyprAnimationsEnabled },
-                            { icon: "󰖑", label: "Blur", sub: hyprBlurEnabled ? "On" : "Off", action: "blur", active: hyprBlurEnabled }
-                        ]
-
-                        Rectangle {
-                            width: (quickSettingsColumn.width - 10) / 2
-                            height: 86
-                            radius: 22
-                            color: modelData.active ? activePillColor : pillColor
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: 14
-                                spacing: 10
-
-                                Text {
-                                    text: modelData.icon
-                                    color: modelData.active ? textColor : mutedTextColor
-                                    font.family: iconFont
-                                    font.pixelSize: 22
-                                    Layout.alignment: Qt.AlignVCenter
-                                }
-
-                                Column {
-                                    Layout.fillWidth: true
-                                    Layout.alignment: Qt.AlignVCenter
-                                    spacing: 4
-
-                                    Text {
-                                        width: parent.width
-                                        text: modelData.label
-                                        color: textColor
-                                        font.family: barFont
-                                        font.pixelSize: 14
-                                        elide: Text.ElideRight
-                                    }
-
-                                    Text {
-                                        width: parent.width
-                                        text: modelData.sub
-                                        color: mutedTextColor
-                                        font.family: barFont
-                                        font.pixelSize: 12
-                                        elide: Text.ElideRight
-                                    }
-                                }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: {
-                                    if (modelData.action === "wifi") toggleWifiRadio();
-                                    else if (modelData.action === "bluetooth" && Bluetooth.defaultAdapter) Bluetooth.defaultAdapter.enabled = !Bluetooth.defaultAdapter.enabled;
-                                    else if (modelData.action === "mute") toggleMute();
-                                    else if (modelData.action === "display") openHyprSettingsFromQuickSettings();
-                                    else if (modelData.action === "animations") toggleHyprAnimations();
-                                    else if (modelData.action === "blur") toggleHyprBlur();
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Column {
-                    width: parent.width
-                    spacing: 10
-
-                    RowLayout {
-                        width: parent.width
-                        height: 42
-                        spacing: 12
-
-                        Text {
-                            text: volumeIconText()
-                            color: audioTextColor
-                            font.family: iconFont
-                            font.pixelSize: 18
-                            Layout.preferredWidth: 24
-                            horizontalAlignment: Text.AlignHCenter
-                            Layout.alignment: Qt.AlignVCenter
-                        }
-
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 10
-                            radius: 5
-                            color: "#24ffffff"
-                            Layout.alignment: Qt.AlignVCenter
-
-                            Rectangle {
-                                width: parent.width * Math.min(volumePercent, 100) / 100
-                                height: parent.height
-                                radius: parent.radius
-                                color: audioTextColor
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: function(mouse) { setVolumePercent(mouse.x / width * 100); }
-                                onPositionChanged: function(mouse) {
-                                    if (pressed) setVolumePercent(mouse.x / width * 100);
-                                }
-                            }
-                        }
-
-                        Text {
-                            text: volumePercent + "%"
-                            color: audioTextColor
-                            font.family: barFont
-                            font.pixelSize: 13
-                            Layout.preferredWidth: 44
-                            horizontalAlignment: Text.AlignRight
-                            Layout.alignment: Qt.AlignVCenter
-                        }
-                    }
-
-                    RowLayout {
-                        width: parent.width
-                        height: 42
-                        spacing: 12
-
-                        Text {
-                            text: "󰃠"
-                            color: clockTextColor
-                            font.family: iconFont
-                            font.pixelSize: 18
-                            Layout.preferredWidth: 24
-                            horizontalAlignment: Text.AlignHCenter
-                            Layout.alignment: Qt.AlignVCenter
-                        }
-
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 10
-                            radius: 5
-                            color: "#24ffffff"
-                            Layout.alignment: Qt.AlignVCenter
-
-                            Rectangle {
-                                width: parent.width * quickBrightnessPercent / 100
-                                height: parent.height
-                                radius: parent.radius
-                                color: clockTextColor
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: function(mouse) { setBrightnessPercent(mouse.x / width * 100); }
-                                onPositionChanged: function(mouse) {
-                                    if (pressed) setBrightnessPercent(mouse.x / width * 100);
-                                }
-                            }
-                        }
-
-                        Text {
-                            text: quickBrightnessPercent + "%"
-                            color: clockTextColor
-                            font.family: barFont
-                            font.pixelSize: 13
-                            Layout.preferredWidth: 44
-                            horizontalAlignment: Text.AlignRight
-                            Layout.alignment: Qt.AlignVCenter
-                        }
-                    }
-                }
-
-                Grid {
-                    width: parent.width
-                    columns: 3
-                    rowSpacing: 10
-                    columnSpacing: 10
-
-                    Repeater {
-                        model: [
-                            { icon: "", label: "Lock", command: ["hyprlock"] },
-                            { icon: "", label: "Reload", shell: "hyprctl reload" },
-                            { icon: "", label: "Power", command: ["systemctl", "poweroff"] }
-                        ]
-
-                        Rectangle {
-                            width: (quickSettingsColumn.width - 20) / 3
-                            height: 54
-                            radius: 18
-                            color: quickActionMouse.containsMouse ? activePillColor : pillColor
-
-                            Row {
-                                anchors.centerIn: parent
-                                spacing: 7
-
-                                Text {
-                                    text: modelData.icon
-                                    color: textColor
-                                    font.family: iconFont
-                                    font.pixelSize: 14
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                Text {
-                                    text: modelData.label
-                                    color: textColor
-                                    font.family: barFont
-                                    font.pixelSize: 13
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-
-                            MouseArea {
-                                id: quickActionMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onClicked: {
-                                    if (modelData.command) runPowerCommand(modelData.command);
-                                    else runQuickCommand(modelData.shell, modelData.label);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Text {
-                    width: parent.width
-                    text: quickSettingsStatusText
-                    color: mutedTextColor
-                    font.family: barFont
-                    font.pixelSize: 12
-                    horizontalAlignment: Text.AlignHCenter
-                }
-            }
-        }
+        bar: barWindow
     }
 }

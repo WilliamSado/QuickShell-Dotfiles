@@ -26,7 +26,7 @@ QtObject {
     property int musicPopupSpacing: 28
     property int musicInfoColumnWidth: 324
     property int musicCoverSize: 250
-    property int musicCoverRadius: 10
+    property int musicCoverRadius: 16
     property int musicCoverX: 37
     property int musicCoverY: 40
     property int musicInfoSpacerHeight: 45
@@ -43,6 +43,7 @@ QtObject {
     property int musicPillLyricScrollEndDelay: 800
     property int musicPillLyricScrollMsPerPixel: 35
     property int musicPopupOffsetY: 14
+    property int musicLyricHeightReduction: 30
     property int musicLyricAnimationMs: 160
     property int musicPositionRefreshInterval: 250
     property int musicLyricRefreshInterval: 2000

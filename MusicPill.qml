@@ -3,6 +3,7 @@ import Quickshell.Io
 import Quickshell.Services.Mpris
 import QtQuick
 import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 import "config" as Config
 
 Rectangle {
@@ -29,6 +30,25 @@ Rectangle {
     property real playbackPosition: 0
     property string localLyricsText: ""
     property string localLyricsTrackKey: ""
+    property var allowedPlayerKeywords: [
+        "yesplaymusic",
+        "spotify"
+    ]
+    property var allowedBrowserMediaKeywords: [
+        "music.youtube.com",
+        "youtube music",
+        "ytmusic",
+        "open.spotify.com",
+        "spotify.com"
+    ]
+    property var browserPlayerKeywords: [
+        "chrome",
+        "chromium",
+        "firefox",
+        "zen",
+        "brave",
+        "edge"
+    ]
 
     Layout.preferredWidth: hasPlayer ? numbers.musicPillWidth : 0
     Layout.preferredHeight: numbers.pillHeight
@@ -44,10 +64,61 @@ Rectangle {
         if (!players || players.length === 0) return null;
 
         for (var i = 0; i < players.length; i++) {
-            if (players[i].isPlaying) return players[i];
+            if (players[i].isPlaying && playerAllowed(players[i])) return players[i];
         }
 
-        return players[0];
+        for (var j = 0; j < players.length; j++) {
+            if (playerAllowed(players[j])) return players[j];
+        }
+
+        return null;
+    }
+
+    function playerAllowed(candidate) {
+        if (!candidate) return false;
+
+        var appText = playerAppText(candidate);
+        if (textContainsAny(appText, allowedPlayerKeywords)) return true;
+
+        if (!textContainsAny(appText, browserPlayerKeywords)) return false;
+
+        return textContainsAny(playerMetadataText(candidate), allowedBrowserMediaKeywords);
+    }
+
+    function playerAppText(candidate) {
+        return [
+            candidate.identity || "",
+            candidate.desktopEntry || "",
+            candidate.dbusName || ""
+        ].join(" ").toLowerCase();
+    }
+
+    function playerMetadataText(candidate) {
+        var metadata = candidate.metadata || ({});
+        var parts = [
+            candidate.trackTitle || "",
+            candidate.trackArtist || "",
+            candidate.trackAlbum || "",
+            candidate.trackArtUrl || "",
+            metadata["xesam:url"] || "",
+            metadata["mpris:trackid"] || "",
+            metadata["xesam:title"] || "",
+            metadata["xesam:artist"] || "",
+            metadata["xesam:album"] || "",
+            metadata["url"] || ""
+        ];
+
+        return parts.join(" ").toLowerCase();
+    }
+
+    function textContainsAny(text, keywords) {
+        if (!text || !keywords) return false;
+
+        for (var i = 0; i < keywords.length; i++) {
+            if (text.indexOf(keywords[i]) >= 0) return true;
+        }
+
+        return false;
     }
 
     function mediaProgress() {
@@ -524,12 +595,19 @@ Rectangle {
             }
 
             Item {
+                id: musicPopupContent
+
+                readonly property real centeredContentY: (
+                    height - (musicInfoColumn.height - numbers.musicLyricHeightReduction)
+                ) / 2 - numbers.musicCoverY
+
                 anchors.fill: parent
                 anchors.margins: numbers.musicPopupMargin
 
                 Item {
                     id: musicInfoColumn
 
+                    y: musicPopupContent.centeredContentY
                     width: numbers.musicInfoColumnWidth
                     height: musicControlsRow.y + musicControlsRow.height
 
@@ -556,6 +634,14 @@ Rectangle {
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: true
                             visible: status === Image.Ready
+                            layer.enabled: true
+                            layer.effect: OpacityMask {
+                                maskSource: Rectangle {
+                                    width: popupAlbumArt.width
+                                    height: popupAlbumArt.height
+                                    radius: numbers.musicCoverRadius
+                                }
+                            }
                         }
 
                         Text {
@@ -756,9 +842,9 @@ Rectangle {
                     id: lyricPane
 
                     x: numbers.musicInfoColumnWidth + numbers.musicPopupSpacing
-                    y: numbers.musicCoverY
+                    y: musicPopupContent.centeredContentY + numbers.musicCoverY
                     width: parent.width - x
-                    height: musicInfoColumn.height - 30
+                    height: musicInfoColumn.height - numbers.musicLyricHeightReduction
                     clip: true
 
                     ListView {
