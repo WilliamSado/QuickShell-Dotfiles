@@ -459,6 +459,13 @@ Rectangle {
         }
     }
 
+    onSuppressedChanged: {
+        if (suppressed) {
+            popupOpen = false;
+            popupClosing = false;
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
         radius: root.radius

@@ -1048,9 +1048,20 @@ PanelWindow {
         setFocusMode(!focusModeEnabled);
     }
 
-    function toggleMediaHiddenInFocus() {
-        mediaHiddenInFocus = !mediaHiddenInFocus;
+    function setMediaHiddenInFocus(enabled) {
+        if (mediaHiddenInFocus === enabled) return;
+
+        mediaHiddenInFocus = enabled;
+        if (enabled && !focusModeEnabled) {
+            setFocusMode(true);
+            return;
+        }
+
         persistSettings();
+    }
+
+    function toggleMediaHiddenInFocus() {
+        setMediaHiddenInFocus(!mediaHiddenInFocus);
     }
 
     function addNotification(notification) {
