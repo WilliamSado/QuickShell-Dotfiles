@@ -1963,11 +1963,19 @@ PanelWindow {
 
             // ---- 系统托盘 ----
             Rectangle {
+                id: trayPill
                 Layout.preferredWidth: trayRow.implicitWidth + pillHPadding * 2
                 Layout.preferredHeight: pillHeight
                 Layout.alignment: Qt.AlignVCenter
                 radius: pillRadius
-                color: sectionPillColor
+                color: trayHover.containsMouse ? activePillColor : pillColor
+
+                MouseArea {
+                    id: trayHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    acceptedButtons: Qt.NoButton
+                }
 
                 Row {
                     id: trayRow

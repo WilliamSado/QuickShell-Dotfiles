@@ -592,9 +592,9 @@ Rectangle {
             border.width: 1
             clip: true
 
-            Behavior on y { NumberAnimation { duration: numbers.popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }
             Behavior on opacity { NumberAnimation { duration: numbers.popupAnimationMs; easing.type: Easing.OutCubic } }
-            Behavior on scale { NumberAnimation { duration: numbers.popupAnimationMs; easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { spring: 3.4; damping: 0.34; epsilon: 0.001 } }
 
             MouseArea {
                 anchors.fill: parent
