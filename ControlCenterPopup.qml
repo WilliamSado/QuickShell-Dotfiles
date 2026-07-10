@@ -17,6 +17,7 @@ Item {
     property var launcherApps: []
     property string launcherQuery: ""
     property string launcherStatus: "Ready"
+    property int launcherSelectedIndex: 0
     readonly property var launcherBuiltins: [
         { type: "builtin", icon: "", name: "Lock", sub: "hyprlock", action: "lock" },
         { type: "builtin", icon: "󰒓", name: "Settings", sub: "Hyprland settings", action: "settings" },
@@ -235,7 +236,7 @@ Item {
 
     function launcherResults() {
         var query = launcherQuery.toLowerCase().trim();
-        var source = launcherBuiltins.concat(launcherApps);
+        var source = launcherBuiltins.concat(launcherWindowItems()).concat(launcherApps);
         if (query.length === 0) return source.slice(0, 18);
 
         var results = [];
@@ -248,6 +249,41 @@ Item {
         return results;
     }
 
+    function launcherWindowItems() {
+        var items = [];
+        for (var i = 0; i < windowItems.length; i++) {
+            var window = windowItems[i];
+            if (!window || !window.address) continue;
+            items.push({
+                type: "window",
+                icon: "󰖯",
+                name: windowName(window),
+                sub: windowSubtext(window),
+                action: window.address,
+                window: window
+            });
+        }
+        return items;
+    }
+
+    function clampLauncherSelection() {
+        var results = launcherResults();
+        if (results.length === 0) {
+            launcherSelectedIndex = 0;
+            return;
+        }
+        launcherSelectedIndex = Math.max(0, Math.min(launcherSelectedIndex, results.length - 1));
+    }
+
+    function moveLauncherSelection(delta) {
+        var results = launcherResults();
+        if (results.length === 0) {
+            launcherSelectedIndex = 0;
+            return;
+        }
+        launcherSelectedIndex = (launcherSelectedIndex + delta + results.length) % results.length;
+    }
+
     function launchItem(item) {
         if (!item) return;
 
@@ -255,6 +291,11 @@ Item {
             root.bar.closeControlCenter();
             launcherCommandProc.command = ["gtk-launch", item.action];
             launcherCommandProc.running = true;
+            return;
+        }
+
+        if (item.type === "window") {
+            focusWindow(item.window);
             return;
         }
 
@@ -291,6 +332,7 @@ Item {
         onVisibleChanged: {
             if (visible && root.bar.controlCenterPage === "launcher") {
                 root.refreshLauncher();
+                root.refreshWindows();
                 Qt.callLater(function() { launcherSearch.forceActiveFocus(); });
             }
             if (visible && root.bar.controlCenterPage === "clipboard") root.refreshClipboard();
@@ -411,6 +453,7 @@ Item {
                                     root.bar.controlCenterPage = modelData.key;
                                     if (modelData.key === "launcher") {
                                         root.refreshLauncher();
+                                        root.refreshWindows();
                                         Qt.callLater(function() { launcherSearch.forceActiveFocus(); });
                                     }
                                     if (modelData.key === "clipboard") root.refreshClipboard();
@@ -498,11 +541,17 @@ Item {
                                     font.family: root.bar.barFont
                                     font.pixelSize: 13
                                     clip: true
-                                    onTextChanged: root.launcherQuery = text
+                                    onTextChanged: {
+                                        root.launcherQuery = text;
+                                        root.launcherSelectedIndex = 0;
+                                    }
                                     Keys.onEscapePressed: root.bar.closeControlCenter()
+                                    Keys.onUpPressed: root.moveLauncherSelection(-1)
+                                    Keys.onDownPressed: root.moveLauncherSelection(1)
                                     Keys.onReturnPressed: {
                                         var results = root.launcherResults();
-                                        if (results.length > 0) root.launchItem(results[0]);
+                                        root.clampLauncherSelection();
+                                        if (results.length > 0) root.launchItem(results[root.launcherSelectedIndex]);
                                     }
                                 }
 
@@ -532,10 +581,12 @@ Item {
                                     model: root.launcherResults()
 
                                     Rectangle {
+                                        property bool isSelected: index === root.launcherSelectedIndex
+
                                         width: launcherList.width
                                         height: 46
                                         radius: 14
-                                        color: launcherMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+                                        color: isSelected || launcherMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
 
                                         RowLayout {
                                             anchors.fill: parent
