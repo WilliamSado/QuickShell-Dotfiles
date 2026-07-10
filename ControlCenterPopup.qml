@@ -283,6 +283,29 @@ Item {
         launcherSelectedIndex = Math.max(0, Math.min(launcherSelectedIndex, results.length - 1));
     }
 
+    function scrollLauncherSelectionIntoView() {
+        if (!launcherFlick || launcherFlick.height <= 0) return;
+
+        var rowHeight = 54;
+        var itemHeight = 46;
+        var itemTop = launcherSelectedIndex * rowHeight;
+        var itemBottom = itemTop + itemHeight;
+        var viewTop = launcherFlick.contentY;
+        var viewBottom = viewTop + launcherFlick.height;
+        var maxY = Math.max(0, launcherFlick.contentHeight - launcherFlick.height);
+
+        if (itemTop < viewTop) {
+            launcherFlick.contentY = Math.max(0, itemTop);
+        } else if (itemBottom > viewBottom) {
+            launcherFlick.contentY = Math.min(maxY, itemBottom - launcherFlick.height);
+        }
+    }
+
+    function resetLauncherSelection() {
+        launcherSelectedIndex = 0;
+        if (launcherFlick) launcherFlick.contentY = 0;
+    }
+
     function moveLauncherSelection(delta) {
         var results = launcherResults();
         if (results.length === 0) {
@@ -290,6 +313,7 @@ Item {
             return;
         }
         launcherSelectedIndex = (launcherSelectedIndex + delta + results.length) % results.length;
+        scrollLauncherSelectionIntoView();
     }
 
     function launchItem(item) {
@@ -555,7 +579,7 @@ Item {
                                     clip: true
                                     onTextChanged: {
                                         root.launcherQuery = text;
-                                        root.launcherSelectedIndex = 0;
+                                        root.resetLauncherSelection();
                                     }
                                     Keys.onEscapePressed: root.bar.closeControlCenter()
                                     Keys.onUpPressed: root.moveLauncherSelection(-1)
@@ -578,11 +602,16 @@ Item {
                         }
 
                         Flickable {
+                            id: launcherFlick
                             width: parent.width
                             height: 270
                             contentWidth: width
                             contentHeight: launcherList.implicitHeight
                             clip: true
+
+                            Behavior on contentY {
+                                NumberAnimation { duration: 90; easing.type: Easing.OutCubic }
+                            }
 
                             Column {
                                 id: launcherList
