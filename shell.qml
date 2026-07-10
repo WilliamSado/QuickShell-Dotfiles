@@ -1,6 +1,7 @@
 //@ pragma UseQApplication
 
 import Quickshell
+import Quickshell.Io
 import QtQuick
 
 ShellRoot {
@@ -8,6 +9,30 @@ ShellRoot {
 
     Bar {
         id: barWindow
+    }
+
+    IpcHandler {
+        target: "control"
+
+        function openLauncher() {
+            barWindow.openControlCenter("launcher");
+        }
+
+        function openCapture() {
+            barWindow.openControlCenter("capture");
+        }
+
+        function openClipboard() {
+            barWindow.openControlCenter("clipboard");
+        }
+
+        function openWindows() {
+            barWindow.openControlCenter("windows");
+        }
+
+        function openFocus() {
+            barWindow.openControlCenter("focus");
+        }
     }
 
     BrightnessOverlay {
