@@ -27,6 +27,7 @@ Rectangle {
     }
     property bool popupOpen: false
     property bool popupClosing: false
+    property bool suppressed: false
     property real playbackPosition: 0
     property string localLyricsText: ""
     property string localLyricsTrackKey: ""
@@ -50,11 +51,11 @@ Rectangle {
         "edge"
     ]
 
-    Layout.preferredWidth: hasPlayer ? numbers.musicPillWidth : 0
+    Layout.preferredWidth: hasPlayer && !suppressed ? numbers.musicPillWidth : 0
     Layout.preferredHeight: numbers.pillHeight
     Layout.alignment: Qt.AlignVCenter
-    Layout.maximumWidth: hasPlayer ? numbers.musicPillWidth : 0
-    visible: hasPlayer
+    Layout.maximumWidth: hasPlayer && !suppressed ? numbers.musicPillWidth : 0
+    visible: hasPlayer && !suppressed
     radius: numbers.pillRadius
     color: colors.pillColor
     clip: true

@@ -16,7 +16,8 @@ Item {
         { key: "launcher", label: "Launcher", icon: "" },
         { key: "clipboard", label: "Clipboard", icon: "" },
         { key: "capture", label: "Capture", icon: "" },
-        { key: "windows", label: "Windows", icon: "󰖯" }
+        { key: "windows", label: "Windows", icon: "󰖯" },
+        { key: "focus", label: "Focus", icon: "󰒲" }
     ]
 
     function pageTitle() {
@@ -117,7 +118,7 @@ Item {
                         model: root.pages
 
                         Rectangle {
-                            width: (controlCenterColumn.width - 24) / 4
+                            width: (controlCenterColumn.width - (root.pages.length - 1) * 8) / root.pages.length
                             height: 38
                             radius: 19
                             color: root.bar.controlCenterPage === modelData.key ? root.bar.activePillColor : tabMouse.containsMouse ? root.bar.sectionPillColor : "transparent"
@@ -156,11 +157,12 @@ Item {
 
                 Rectangle {
                     width: parent.width
-                    height: 170
+                    height: root.bar.controlCenterPage === "focus" ? 210 : 170
                     radius: 18
                     color: root.bar.sectionPillColor
 
                     Column {
+                        visible: root.bar.controlCenterPage !== "focus"
                         anchors.centerIn: parent
                         spacing: 8
 
@@ -186,6 +188,102 @@ Item {
                             color: root.bar.mutedTextColor
                             font.family: root.bar.barFont
                             font.pixelSize: 12
+                        }
+                    }
+
+                    Column {
+                        visible: root.bar.controlCenterPage === "focus"
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 16
+                        spacing: 12
+
+                        Text {
+                            width: parent.width
+                            text: "Focus Mode"
+                            color: root.bar.textColor
+                            font.family: root.bar.barFont
+                            font.pixelSize: 15
+                        }
+
+                        Text {
+                            width: parent.width
+                            text: root.bar.focusModeEnabled ? "勿扰已开启，媒体胶囊按设置隐藏" : "开启后会启用勿扰，并可隐藏媒体胶囊"
+                            color: root.bar.mutedTextColor
+                            font.family: root.bar.barFont
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                        }
+
+                        RowLayout {
+                            width: parent.width
+                            height: 44
+                            spacing: 10
+
+                            Text {
+                                text: "勿扰模式"
+                                color: root.bar.textColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 13
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 72
+                                Layout.preferredHeight: 32
+                                radius: 16
+                                color: root.bar.focusModeEnabled ? root.bar.activePillColor : root.bar.pillColor
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: root.bar.focusModeEnabled ? "On" : "Off"
+                                    color: root.bar.textColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 12
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: root.bar.toggleFocusMode()
+                                }
+                            }
+                        }
+
+                        RowLayout {
+                            width: parent.width
+                            height: 44
+                            spacing: 10
+
+                            Text {
+                                text: "隐藏媒体胶囊"
+                                color: root.bar.textColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 13
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 72
+                                Layout.preferredHeight: 32
+                                radius: 16
+                                color: root.bar.mediaHiddenInFocus ? root.bar.activePillColor : root.bar.pillColor
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: root.bar.mediaHiddenInFocus ? "On" : "Off"
+                                    color: root.bar.textColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 12
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: root.bar.toggleMediaHiddenInFocus()
+                                }
+                            }
                         }
                     }
                 }

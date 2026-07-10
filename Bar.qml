@@ -118,6 +118,9 @@ PanelWindow {
     property string temperatureText: "--"
     property string processText: "--"
     property bool notificationsDnd: false
+    property bool focusModeEnabled: false
+    property bool mediaHiddenInFocus: true
+    property bool dndBeforeFocusMode: false
     property var notificationHistory: []
     property int unreadNotifications: 0
     property bool settingsApplyingStored: false
@@ -906,6 +909,12 @@ PanelWindow {
         hyprBlurEnabled = settingsStore.hyprBlurEnabled;
         hyprAnimationsEnabled = settingsStore.hyprAnimationsEnabled;
         notificationsDnd = settingsStore.doNotDisturb;
+        focusModeEnabled = settingsStore.focusModeEnabled;
+        mediaHiddenInFocus = settingsStore.mediaHiddenInFocus;
+        if (focusModeEnabled) {
+            dndBeforeFocusMode = false;
+            notificationsDnd = true;
+        }
         powerProfile = settingsStore.powerProfile;
         settingsApplyingStored = false;
         restoreRememberedSettings();
@@ -922,6 +931,8 @@ PanelWindow {
         settingsStore.hyprBlurEnabled = hyprBlurEnabled;
         settingsStore.hyprAnimationsEnabled = hyprAnimationsEnabled;
         settingsStore.doNotDisturb = notificationsDnd;
+        settingsStore.focusModeEnabled = focusModeEnabled;
+        settingsStore.mediaHiddenInFocus = mediaHiddenInFocus;
         settingsStore.powerProfile = powerProfile;
         settingsStore.rememberedVolumePercent = volumePercent;
         settingsStore.rememberedBrightnessPercent = quickBrightnessPercent;
@@ -996,6 +1007,29 @@ PanelWindow {
 
     function toggleDoNotDisturb() {
         notificationsDnd = !notificationsDnd;
+        persistSettings();
+    }
+
+    function setFocusMode(enabled) {
+        if (focusModeEnabled === enabled) return;
+
+        if (enabled) {
+            dndBeforeFocusMode = notificationsDnd;
+            notificationsDnd = true;
+        } else {
+            notificationsDnd = dndBeforeFocusMode;
+        }
+
+        focusModeEnabled = enabled;
+        persistSettings();
+    }
+
+    function toggleFocusMode() {
+        setFocusMode(!focusModeEnabled);
+    }
+
+    function toggleMediaHiddenInFocus() {
+        mediaHiddenInFocus = !mediaHiddenInFocus;
         persistSettings();
     }
 
@@ -1839,6 +1873,7 @@ PanelWindow {
         MusicPill {
             id: musicPill
             popupParentWindow: barWindow
+            suppressed: focusModeEnabled && mediaHiddenInFocus
         }
 
         // ============ 右侧区域 ============
