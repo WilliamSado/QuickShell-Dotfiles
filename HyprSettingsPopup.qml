@@ -69,8 +69,8 @@ Item {
             transformOrigin: Item.Top
             implicitHeight: hyprSettingsColumn.implicitHeight + 28
             radius: 18
-            color: "#cc121212"
-            border.color: "#22ffffff"
+            color: root.bar.popupColor
+            border.color: root.bar.popupBorderColor
             border.width: 1
 
             Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }

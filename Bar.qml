@@ -58,6 +58,8 @@ PanelWindow {
     property alias pillColor: colors.pillColor
     property alias sectionPillColor: colors.sectionPillColor
     property alias activePillColor: colors.activePillColor
+    property alias popupColor: colors.popupColor
+    property alias popupBorderColor: colors.popupBorderColor
     property alias textColor: colors.textColor
     property alias mutedTextColor: colors.mutedTextColor
     property alias windowTextColor: colors.windowTextColor
@@ -1754,7 +1756,7 @@ PanelWindow {
                 Text {
                     anchors.centerIn: parent
                     text: ""
-                    color: textColor
+                    color: networkTextColor
                     font.family: barFont
                     font.pixelSize: archIconFontSize
                 }
@@ -2362,8 +2364,8 @@ PanelWindow {
             transformOrigin: Item.Top
             implicitHeight: bluetoothPopupColumn.implicitHeight + 24
             radius: 18
-            color: "#cc121212"
-            border.color: "#22ffffff"
+            color: popupColor
+            border.color: popupBorderColor
             border.width: 1
 
             Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }
@@ -2551,8 +2553,8 @@ PanelWindow {
             transformOrigin: Item.Top
             implicitHeight: powerPopupColumn.implicitHeight + 24
             radius: 18
-            color: "#cc121212"
-            border.color: "#22ffffff"
+            color: popupColor
+            border.color: popupBorderColor
             border.width: 1
 
             Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }
@@ -2738,8 +2740,8 @@ PanelWindow {
             transformOrigin: Item.Top
             implicitHeight: volumePopupColumn.implicitHeight + 24
             radius: 18
-            color: "#cc121212"
-            border.color: "#22ffffff"
+            color: popupColor
+            border.color: popupBorderColor
             border.width: 1
 
             Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }
@@ -3143,8 +3145,8 @@ PanelWindow {
             transformOrigin: Item.Top
             implicitHeight: networkPopupColumn.implicitHeight + 24
             radius: 18
-            color: "#cc121212"
-            border.color: "#22ffffff"
+            color: popupColor
+            border.color: popupBorderColor
             border.width: 1
 
             Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }
@@ -3637,8 +3639,8 @@ PanelWindow {
             transformOrigin: Item.Top
             implicitHeight: Math.min(notificationColumn.implicitHeight + 24, 430)
             radius: 18
-            color: "#cc121212"
-            border.color: "#22ffffff"
+            color: popupColor
+            border.color: popupBorderColor
             border.width: 1
             clip: true
 
@@ -3815,8 +3817,8 @@ PanelWindow {
             transformOrigin: Item.Top
             implicitHeight: performanceColumn.implicitHeight + 24
             radius: 18
-            color: "#cc121212"
-            border.color: "#22ffffff"
+            color: popupColor
+            border.color: popupBorderColor
             border.width: 1
 
             Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }
@@ -3966,8 +3968,8 @@ PanelWindow {
             transformOrigin: Item.Top
             implicitHeight: clockPopupColumn.implicitHeight + 24
             radius: 18
-            color: "#cc121212"
-            border.color: "#22ffffff"
+            color: popupColor
+            border.color: popupBorderColor
             border.width: 1
 
             Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }

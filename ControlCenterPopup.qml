@@ -392,8 +392,8 @@ Item {
             transformOrigin: Item.TopRight
             implicitHeight: controlCenterColumn.implicitHeight + 32
             radius: 22
-            color: root.bar.pillColor
-            border.color: "#22ffffff"
+            color: root.bar.popupColor
+            border.color: root.bar.popupBorderColor
             border.width: 1
 
             Behavior on y { SpringAnimation { spring: 3.0; damping: 0.34; epsilon: 0.2 } }

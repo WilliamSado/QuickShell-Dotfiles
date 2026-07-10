@@ -37,8 +37,8 @@ Item {
             transformOrigin: Item.Right
             implicitHeight: quickSettingsColumn.implicitHeight + 36
             radius: 24
-            color: "#dd121212"
-            border.color: "#22ffffff"
+            color: root.bar.popupColor
+            border.color: root.bar.popupBorderColor
             border.width: 1
 
             Behavior on x { SpringAnimation { spring: 2.8; damping: 0.30; epsilon: 0.3 } }
