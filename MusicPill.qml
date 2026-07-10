@@ -13,6 +13,12 @@ Rectangle {
     Config.Colors { id: colors }
 
     required property var popupParentWindow
+    property color themePillColor: colors.pillColor
+    property color themeActivePillColor: colors.activePillColor
+    property color themePopupColor: colors.popupColor
+    property color themePopupBorderColor: colors.popupBorderColor
+    property color themeTextColor: colors.textColor
+    property color themeAudioTextColor: colors.audioTextColor
 
     readonly property var player: activePlayer()
     readonly property bool hasPlayer: player !== null && player !== undefined
@@ -57,7 +63,7 @@ Rectangle {
     Layout.maximumWidth: hasPlayer && !suppressed ? numbers.musicPillWidth : 0
     visible: hasPlayer && !suppressed
     radius: numbers.pillRadius
-    color: colors.pillColor
+    color: themePillColor
     clip: true
 
     function activePlayer() {
@@ -456,7 +462,7 @@ Rectangle {
     Rectangle {
         anchors.fill: parent
         radius: root.radius
-        color: colors.activePillColor
+        color: themeActivePillColor
         opacity: hasPlayer && player.isPlaying ? numbers.musicActiveOverlayOpacity : 0
 
         Behavior on opacity {
@@ -475,7 +481,7 @@ Rectangle {
 
         Text {
             text: hasPlayer && player.isPlaying ? "" : ""
-            color: colors.audioTextColor
+            color: themeAudioTextColor
             font.family: "JetBrainsMono Nerd Font"
             font.pixelSize: numbers.musicPillIconFontSize
             Layout.alignment: Qt.AlignVCenter
@@ -494,7 +500,7 @@ Rectangle {
 
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.pillLyricText
-                color: colors.textColor
+                color: themeTextColor
                 font.family: "JetBrainsMono Nerd Font"
                 font.pixelSize: numbers.musicPillIconFontSize
                 maximumLineCount: 1
@@ -581,8 +587,8 @@ Rectangle {
             scale: root.popupOpen ? 1 : 0.96
             transformOrigin: Item.Top
             radius: numbers.popupRadius
-            color: colors.popupColor
-            border.color: colors.popupBorderColor
+            color: themePopupColor
+            border.color: themePopupBorderColor
             border.width: 1
             clip: true
 
@@ -649,7 +655,7 @@ Rectangle {
                             anchors.centerIn: parent
                             visible: popupAlbumArt.status !== Image.Ready
                             text: root.hasPlayer && root.player.isPlaying ? "" : ""
-                            color: colors.textColor
+                            color: themeTextColor
                             font.family: "JetBrainsMono Nerd Font"
                             font.pixelSize: numbers.musicPopupFallbackIconFontSize
                         }
@@ -662,7 +668,7 @@ Rectangle {
                         y: musicCover.y + musicCover.height + numbers.musicInfoSpacerHeight
                         width: parent.width
                         text: root.hasPlayer && root.player.trackTitle ? root.player.trackTitle : "Media"
-                        color: colors.textColor
+                        color: themeTextColor
                         font.family: "JetBrainsMono Nerd Font"
                         font.pixelSize: numbers.musicTitleFontSize
                         font.bold: true
@@ -677,7 +683,7 @@ Rectangle {
                         y: musicTitleText.y + musicTitleText.implicitHeight + numbers.musicInfoSpacing
                         width: parent.width
                         text: root.popupArtistText()
-                        color: colors.textColor
+                        color: themeTextColor
                         font.family: "JetBrainsMono Nerd Font"
                         font.pixelSize: numbers.musicArtistFontSize
                         elide: Text.ElideRight
@@ -695,7 +701,7 @@ Rectangle {
 
                         Text {
                             text: root.formatTime(root.playbackPosition)
-                            color: colors.textColor
+                            color: themeTextColor
                             font.family: "JetBrainsMono Nerd Font"
                             font.pixelSize: numbers.musicTimeFontSize
                             Layout.preferredWidth: numbers.musicTimeWidth
@@ -739,13 +745,13 @@ Rectangle {
                                         ctx.lineTo(x, y);
                                     }
                                     ctx.lineTo(progressX, centerY);
-                                    ctx.strokeStyle = colors.textColor;
+                                    ctx.strokeStyle = root.themeTextColor;
                                     ctx.stroke();
                                 }
 
                                 ctx.beginPath();
                                 ctx.arc(progressX, centerY, knobRadius, 0, Math.PI * 2);
-                                ctx.fillStyle = colors.textColor;
+                                ctx.fillStyle = root.themeTextColor;
                                 ctx.fill();
                             }
 
@@ -778,7 +784,7 @@ Rectangle {
 
                         Text {
                             text: root.formatTime(root.hasPlayer && root.player.lengthSupported ? root.player.length : 0)
-                            color: colors.textColor
+                            color: themeTextColor
                             font.family: "JetBrainsMono Nerd Font"
                             font.pixelSize: numbers.musicTimeFontSize
                             horizontalAlignment: Text.AlignRight
@@ -797,7 +803,7 @@ Rectangle {
 
                         Text {
                             text: "󰒮"
-                            color: root.hasPlayer && root.player.canGoPrevious ? colors.textColor : colors.musicDisabledTextColor
+                            color: root.hasPlayer && root.player.canGoPrevious ? themeTextColor : colors.musicDisabledTextColor
                             font.family: "JetBrainsMono Nerd Font"
                             font.pixelSize: numbers.musicControlFontSize
                             Layout.alignment: Qt.AlignVCenter
@@ -811,7 +817,7 @@ Rectangle {
 
                         Text {
                             text: root.hasPlayer && root.player.isPlaying ? "" : ""
-                            color: colors.textColor
+                            color: themeTextColor
                             font.family: "JetBrainsMono Nerd Font"
                             font.pixelSize: numbers.musicPlayFontSize
                             Layout.alignment: Qt.AlignVCenter
@@ -825,7 +831,7 @@ Rectangle {
 
                         Text {
                             text: "󰒭"
-                            color: root.hasPlayer && root.player.canGoNext ? colors.textColor : colors.musicDisabledTextColor
+                            color: root.hasPlayer && root.player.canGoNext ? themeTextColor : colors.musicDisabledTextColor
                             font.family: "JetBrainsMono Nerd Font"
                             font.pixelSize: numbers.musicControlFontSize
                             Layout.alignment: Qt.AlignVCenter
@@ -868,7 +874,7 @@ Rectangle {
                             width: lyricList.width
                             height: implicitHeight + numbers.musicLyricItemVPadding
                             text: modelData.text
-                            color: index === root.currentLyricIndex ? colors.textColor : colors.musicLyricLowlightColor
+                            color: index === root.currentLyricIndex ? root.themeTextColor : colors.musicLyricLowlightColor
                             font.family: "JetBrainsMono Nerd Font"
                             font.pixelSize: index === root.currentLyricIndex ? numbers.musicLyricActiveFontSize : numbers.musicLyricInactiveFontSize
                             font.bold: index === root.currentLyricIndex

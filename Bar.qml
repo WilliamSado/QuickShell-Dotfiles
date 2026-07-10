@@ -103,6 +103,7 @@ PanelWindow {
     property string networkPopupMode: "active"
     property string controlCenterPage: "launcher"
     property string currentThemeName: "Tela Cyan"
+    property string themeMode: "dark"
     property string hyprWallpaperPath: ""
     property var wallpaperDirectories: ["/home/sado/Pictures/wallpapers"]
     property string wallpaperDirectoryInput: "/home/sado/Pictures/wallpapers"
@@ -876,19 +877,34 @@ PanelWindow {
         if (!preset) return;
 
         currentThemeName = preset.name || currentThemeName;
-        pillColor = preset.pill || "#33282828";
-        sectionPillColor = preset.section || "#33121212";
-        activePillColor = preset.active || "#99121212";
-        textColor = preset.text || "#ffffff";
-        mutedTextColor = preset.muted || "#40ffffff";
-        windowTextColor = preset.window || preset.accent || "#e6f2d6";
-        bluetoothTextColor = preset.bluetooth || preset.accent || "#f6a4fe";
-        clockTextColor = preset.clock || preset.accent || "#eefff1";
-        cpuTextColor = preset.cpu || preset.warn || "#FE968B";
-        memoryTextColor = preset.memory || preset.warm || "#FFEAAA";
-        audioTextColor = preset.audio || preset.accent2 || "#a4e4fe";
-        networkTextColor = preset.network || preset.accent || "#b0f5e5";
+        var tone = themeTone(preset);
+        pillColor = tone.pill || "#282828";
+        sectionPillColor = tone.section || "#121212";
+        activePillColor = tone.active || "#3a3a3a";
+        popupColor = tone.popup || tone.section || "#121212";
+        popupBorderColor = tone.border || tone.active || "#444444";
+        textColor = tone.text || "#ffffff";
+        mutedTextColor = tone.muted || "#9a9a9a";
+        windowTextColor = tone.window || tone.accent || "#e6f2d6";
+        bluetoothTextColor = tone.bluetooth || tone.accent || "#f6a4fe";
+        clockTextColor = tone.clock || tone.accent || "#eefff1";
+        cpuTextColor = tone.cpu || tone.warn || "#FE968B";
+        memoryTextColor = tone.memory || tone.warm || "#FFEAAA";
+        audioTextColor = tone.audio || tone.accent2 || "#a4e4fe";
+        networkTextColor = tone.network || tone.accent || "#b0f5e5";
         persistSettings();
+    }
+
+    function themeTone(preset) {
+        if (!preset) return ({});
+        if (themeMode === "light" && preset.light) return preset.light;
+        if (preset.dark) return preset.dark;
+        return preset;
+    }
+
+    function toggleThemeMode() {
+        themeMode = themeMode === "light" ? "dark" : "light";
+        applyThemePreset(themePresetByName(currentThemeName));
     }
 
     function themePresetByName(name) {
@@ -901,6 +917,7 @@ PanelWindow {
     function applyStoredSettings() {
         settingsApplyingStored = true;
         currentThemeName = settingsStore.themeName;
+        themeMode = settingsStore.themeMode === "light" ? "light" : "dark";
         var preset = themePresetByName(currentThemeName);
         if (preset) applyThemePreset(preset);
         if (settingsStore.wallpaperPath.length > 0) hyprWallpaperPath = settingsStore.wallpaperPath;
@@ -926,6 +943,7 @@ PanelWindow {
     function persistSettings() {
         if (settingsApplyingStored) return;
         settingsStore.themeName = currentThemeName;
+        settingsStore.themeMode = themeMode;
         settingsStore.wallpaperPath = hyprWallpaperPath;
         settingsStore.wallpaperDirectories = wallpaperDirectories;
         settingsStore.popupAnimationMs = popupAnimationMs;
@@ -1876,6 +1894,12 @@ PanelWindow {
             id: musicPill
             popupParentWindow: barWindow
             suppressed: focusModeEnabled && mediaHiddenInFocus
+            themePillColor: pillColor
+            themeActivePillColor: activePillColor
+            themePopupColor: popupColor
+            themePopupBorderColor: popupBorderColor
+            themeTextColor: textColor
+            themeAudioTextColor: audioTextColor
         }
 
         // ============ 右侧区域 ============

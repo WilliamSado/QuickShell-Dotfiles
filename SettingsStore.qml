@@ -7,6 +7,7 @@ Item {
 
     property string path: "/home/sado/.config/quickshell/state/settings.json"
     property string themeName: "Tela Cyan"
+    property string themeMode: "dark"
     property string wallpaperPath: ""
     property var wallpaperDirectories: ["/home/sado/Pictures/wallpapers"]
     property int popupAnimationMs: 190
@@ -43,6 +44,7 @@ Item {
     function save() {
         var data = {
             "themeName": themeName,
+            "themeMode": themeMode,
             "wallpaperPath": wallpaperPath,
             "wallpaperDirectories": wallpaperDirectories,
             "popupAnimationMs": popupAnimationMs,
@@ -81,6 +83,7 @@ Item {
                 try {
                     var data = JSON.parse(text || "{}");
                     if (data.themeName !== undefined) root.themeName = data.themeName;
+                    if (data.themeMode !== undefined) root.themeMode = data.themeMode;
                     if (data.wallpaperPath !== undefined) root.wallpaperPath = data.wallpaperPath;
                     if (data.wallpaperDirectories !== undefined && data.wallpaperDirectories.length !== undefined) root.wallpaperDirectories = data.wallpaperDirectories;
                     if (data.popupAnimationMs !== undefined) root.popupAnimationMs = data.popupAnimationMs;

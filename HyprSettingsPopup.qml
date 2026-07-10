@@ -411,6 +411,69 @@ Item {
                     }
 
                     Text {
+                        text: "Mode"
+                        color: root.bar.mutedTextColor
+                        font.family: root.bar.barFont
+                        font.pixelSize: 13
+                    }
+
+                    RowLayout {
+                        width: parent.width
+                        height: 36
+                        spacing: 8
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 36
+                            radius: 18
+                            color: root.bar.themeMode === "dark" ? root.bar.activePillColor : root.bar.pillColor
+                            border.color: root.bar.popupBorderColor
+                            border.width: 1
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "Dark"
+                                color: root.bar.themeMode === "dark" ? root.bar.textColor : root.bar.mutedTextColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 12
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: {
+                                    if (root.bar.themeMode !== "dark") root.bar.toggleThemeMode();
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 36
+                            radius: 18
+                            color: root.bar.themeMode === "light" ? root.bar.activePillColor : root.bar.pillColor
+                            border.color: root.bar.popupBorderColor
+                            border.width: 1
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "Light"
+                                color: root.bar.themeMode === "light" ? root.bar.textColor : root.bar.mutedTextColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 12
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: {
+                                    if (root.bar.themeMode !== "light") root.bar.toggleThemeMode();
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
                         text: "Accent"
                         color: root.bar.mutedTextColor
                         font.family: root.bar.barFont
@@ -427,11 +490,14 @@ Item {
                             model: themePresets.presets
 
                             Rectangle {
+                                id: themePresetCard
+                                property var tone: root.bar.themeTone(modelData)
+
                                 width: (parent.width - 16) / 3
                                 height: 58
                                 radius: 16
-                                color: themePresetMouse.containsMouse ? modelData.active : modelData.pill
-                                border.color: modelData.accent
+                                color: themePresetMouse.containsMouse ? tone.active : tone.pill
+                                border.color: tone.accent
                                 border.width: 1
 
                                 RowLayout {
@@ -446,7 +512,7 @@ Item {
                                         spacing: -6
 
                                         Repeater {
-                                            model: [modelData.accent, modelData.accent2, modelData.bluetooth]
+                                            model: [themePresetCard.tone.accent, themePresetCard.tone.accent2, themePresetCard.tone.bluetooth]
 
                                             Rectangle {
                                                 width: 18
@@ -461,7 +527,7 @@ Item {
 
                                     Text {
                                         text: modelData.name
-                                        color: modelData.text
+                                        color: themePresetCard.tone.text
                                         font.family: root.bar.barFont
                                         font.pixelSize: 12
                                         elide: Text.ElideRight

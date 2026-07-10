@@ -1,13 +1,13 @@
 import QtQuick
 
 QtObject {
-    property color pillColor: "#33282828"
-    property color sectionPillColor: "#33121212"
-    property color activePillColor: "#99121212"
-    property color popupColor: "#cc121212"
-    property color popupBorderColor: "#22ffffff"
+    property color pillColor: "#19383a"
+    property color sectionPillColor: "#10282b"
+    property color activePillColor: "#2d6669"
+    property color popupColor: "#0f2022"
+    property color popupBorderColor: "#2f6f73"
     property color textColor: "#ffffff"
-    property color mutedTextColor: "#40ffffff"
+    property color mutedTextColor: "#8fb5b8"
     property color windowTextColor: "#e6f2d6"
     property color bluetoothTextColor: "#f6a4fe"
     property color clockTextColor: "#eefff1"
