@@ -22,7 +22,7 @@ PanelWindow {
     implicitHeight: 52
     color: "transparent"
     focusable: hyprSettingsOpen
-    WlrLayershell.keyboardFocus: focusable ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: hyprSettingsOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     Config.Numbers { id: numbers }
     Config.Colors { id: colors }
@@ -31,35 +31,6 @@ PanelWindow {
     SettingsStore {
         id: settingsStore
         onLoaded: applyStoredSettings()
-    }
-
-    IpcHandler {
-        target: "control"
-
-        function openLauncher(): string {
-            barWindow.openLauncher();
-            return "launcher";
-        }
-
-        function openCapture(): string {
-            barWindow.openCapturePanel();
-            return "capture";
-        }
-
-        function openSettings(): string {
-            barWindow.openHyprSettings();
-            return "settings";
-        }
-
-        function openClipboard(): string {
-            barWindow.openClipboardPanel();
-            return "clipboard";
-        }
-
-        function openWindows(): string {
-            barWindow.openWindowSwitcher();
-            return "windows";
-        }
     }
 
     property alias barTopMargin: numbers.barTopMargin
@@ -124,16 +95,6 @@ PanelWindow {
     property alias performancePopupClosing: booleans.performancePopupClosing
     property alias notificationCenterOpen: booleans.notificationCenterOpen
     property alias notificationCenterClosing: booleans.notificationCenterClosing
-    property alias launcherOpen: booleans.launcherOpen
-    property alias launcherClosing: booleans.launcherClosing
-    property alias clipboardOpen: booleans.clipboardOpen
-    property alias clipboardClosing: booleans.clipboardClosing
-    property alias captureOpen: booleans.captureOpen
-    property alias captureClosing: booleans.captureClosing
-    property alias windowSwitcherOpen: booleans.windowSwitcherOpen
-    property alias windowSwitcherClosing: booleans.windowSwitcherClosing
-    property alias focusModeEnabled: booleans.focusModeEnabled
-    property alias mediaHiddenInFocus: booleans.mediaHiddenInFocus
 
     property string networkPopupMode: "active"
     property string currentThemeName: "Tela Cyan"
@@ -154,12 +115,10 @@ PanelWindow {
     property string temperatureText: "--"
     property string processText: "--"
     property bool notificationsDnd: false
-    property bool focusDndBefore: false
     property var notificationHistory: []
     property int unreadNotifications: 0
     property bool settingsApplyingStored: false
     property bool settingsRestoring: false
-    property bool controlCenterExtrasEnabled: false
     property string hyprStatusText: "Ready"
     property string hyprCommandErrorText: ""
     property string hyprMonitorName: "Unknown"
@@ -188,10 +147,54 @@ PanelWindow {
         || notificationCenterOpen
         || hyprSettingsOpen
         || quickSettingsOpen
-        || launcherOpen
-        || clipboardOpen
-        || captureOpen
-        || windowSwitcherOpen
+    readonly property bool clickAwayOpen: bluetoothPopupOpen
+        || powerPopupOpen
+        || volumePopupOpen
+        || networkPopupOpen
+        || clockPopupOpen
+        || performancePopupOpen
+        || notificationCenterOpen
+    readonly property int clickAwayHoleX: bluetoothPopupOpen ? bluetoothPopup.relativeX
+        : powerPopupOpen ? powerPopup.relativeX
+        : volumePopupOpen ? volumePopup.relativeX
+        : networkPopupOpen ? networkPopup.relativeX
+        : clockPopupOpen ? clockPopup.relativeX
+        : performancePopupOpen ? performancePopup.relativeX
+        : notificationCenterOpen ? notificationCenter.relativeX
+        : hyprSettingsOpen ? hyprSettingsPopup.relativeX
+        : quickSettingsOpen ? quickSettingsWindow.relativeX
+        : 0
+    readonly property int clickAwayHoleY: (bluetoothPopupOpen ? bluetoothPopup.relativeY
+        : powerPopupOpen ? powerPopup.relativeY
+        : volumePopupOpen ? volumePopup.relativeY
+        : networkPopupOpen ? networkPopup.relativeY
+        : clockPopupOpen ? clockPopup.relativeY
+        : performancePopupOpen ? performancePopup.relativeY
+        : notificationCenterOpen ? notificationCenter.relativeY
+        : hyprSettingsOpen ? hyprSettingsPopup.relativeY
+        : quickSettingsOpen ? quickSettingsWindow.relativeY
+        : barWindow.implicitHeight) - barWindow.implicitHeight
+    readonly property int clickAwayHoleWidth: bluetoothPopupOpen ? bluetoothPopup.implicitWidth
+        : powerPopupOpen ? powerPopup.implicitWidth
+        : volumePopupOpen ? volumePopup.implicitWidth
+        : networkPopupOpen ? networkPopup.implicitWidth
+        : clockPopupOpen ? clockPopup.implicitWidth
+        : performancePopupOpen ? performancePopup.implicitWidth
+        : notificationCenterOpen ? notificationCenter.implicitWidth
+        : hyprSettingsOpen ? hyprSettingsPopup.implicitWidth
+        : quickSettingsOpen ? quickSettingsWindow.implicitWidth
+        : 0
+    readonly property int clickAwayHoleHeight: bluetoothPopupOpen ? bluetoothPopup.implicitHeight
+        : powerPopupOpen ? powerPopup.implicitHeight
+        : volumePopupOpen ? volumePopup.implicitHeight
+        : networkPopupOpen ? networkPopup.implicitHeight
+        : clockPopupOpen ? clockPopup.implicitHeight
+        : performancePopupOpen ? performancePopup.implicitHeight
+        : notificationCenterOpen ? notificationCenter.implicitHeight
+        : hyprSettingsOpen ? hyprSettingsPopup.implicitHeight
+        : quickSettingsOpen ? quickSettingsWindow.implicitHeight
+        : 0
+
     onBluetoothPopupOpenChanged: {
         if (bluetoothPopupOpen) {
             bluetoothPopupClosing = false;
@@ -252,42 +255,6 @@ PanelWindow {
         } else if (!notificationCenterClosing) {
             notificationCenterClosing = true;
             notificationCenterCloseTimer.restart();
-        }
-    }
-
-    onLauncherOpenChanged: {
-        if (launcherOpen) {
-            launcherClosing = false;
-        } else if (!launcherClosing) {
-            launcherClosing = true;
-            launcherCloseTimer.restart();
-        }
-    }
-
-    onClipboardOpenChanged: {
-        if (clipboardOpen) {
-            clipboardClosing = false;
-        } else if (!clipboardClosing) {
-            clipboardClosing = true;
-            clipboardCloseTimer.restart();
-        }
-    }
-
-    onCaptureOpenChanged: {
-        if (captureOpen) {
-            captureClosing = false;
-        } else if (!captureClosing) {
-            captureClosing = true;
-            captureCloseTimer.restart();
-        }
-    }
-
-    onWindowSwitcherOpenChanged: {
-        if (windowSwitcherOpen) {
-            windowSwitcherClosing = false;
-        } else if (!windowSwitcherClosing) {
-            windowSwitcherClosing = true;
-            windowSwitcherCloseTimer.restart();
         }
     }
 
@@ -362,34 +329,6 @@ PanelWindow {
         notificationCenterOpen = false;
     }
 
-    function closeLauncher() {
-        if (!launcherOpen) return;
-        launcherClosing = true;
-        launcherCloseTimer.restart();
-        launcherOpen = false;
-    }
-
-    function closeClipboardPanel() {
-        if (!clipboardOpen) return;
-        clipboardClosing = true;
-        clipboardCloseTimer.restart();
-        clipboardOpen = false;
-    }
-
-    function closeCapturePanel() {
-        if (!captureOpen) return;
-        captureClosing = true;
-        captureCloseTimer.restart();
-        captureOpen = false;
-    }
-
-    function closeWindowSwitcher() {
-        if (!windowSwitcherOpen) return;
-        windowSwitcherClosing = true;
-        windowSwitcherCloseTimer.restart();
-        windowSwitcherOpen = false;
-    }
-
     function closeHyprSettings() {
         if (!hyprSettingsOpen) return;
         hyprSettingsClosing = true;
@@ -410,54 +349,6 @@ PanelWindow {
         refreshHyprMonitors();
         Qt.callLater(function() {
             hyprSettingsPopup.focusWallpaperInput();
-        });
-    }
-
-    function openLauncher() {
-        if (!controlCenterExtrasEnabled) {
-            quickSettingsStatusText = "Launcher disabled";
-            return;
-        }
-        closePopupsExcept("launcher");
-        launcherOpen = true;
-        Qt.callLater(function() {
-            if (launcherPanel.item) {
-                launcherPanel.item.refresh();
-                launcherPanel.item.focusSearch();
-            }
-        });
-    }
-
-    function openClipboardPanel() {
-        if (!controlCenterExtrasEnabled) {
-            quickSettingsStatusText = "Clipboard disabled";
-            return;
-        }
-        closePopupsExcept("clipboard");
-        clipboardOpen = true;
-        Qt.callLater(function() {
-            if (clipboardPanel.item) clipboardPanel.item.refresh();
-        });
-    }
-
-    function openCapturePanel() {
-        if (!controlCenterExtrasEnabled) {
-            quickSettingsStatusText = "Capture disabled";
-            return;
-        }
-        closePopupsExcept("capture");
-        captureOpen = true;
-    }
-
-    function openWindowSwitcher() {
-        if (!controlCenterExtrasEnabled) {
-            quickSettingsStatusText = "Window switcher disabled";
-            return;
-        }
-        closePopupsExcept("windowSwitcher");
-        windowSwitcherOpen = true;
-        Qt.callLater(function() {
-            if (windowSwitcherPanel.item) windowSwitcherPanel.item.refresh();
         });
     }
 
@@ -483,12 +374,12 @@ PanelWindow {
         if (name !== "clock") closeClockPopup();
         if (name !== "performance") closePerformancePopup();
         if (name !== "notifications") closeNotificationCenter();
-        if (name !== "launcher") closeLauncher();
-        if (name !== "clipboard") closeClipboardPanel();
-        if (name !== "capture") closeCapturePanel();
-        if (name !== "windowSwitcher") closeWindowSwitcher();
         if (name !== "hyprSettings") closeHyprSettings();
         if (name !== "quickSettings") closeQuickSettings();
+    }
+
+    function closeAllPopups() {
+        closePopupsExcept("");
     }
 
     function volumeIconText() {
@@ -945,20 +836,6 @@ PanelWindow {
         quickCommandProc.running = true;
     }
 
-    function toggleFocusMode() {
-        if (!focusModeEnabled) {
-            focusDndBefore = notificationsDnd;
-            focusModeEnabled = true;
-            notificationsDnd = true;
-            quickSettingsStatusText = "Focus mode on";
-        } else {
-            focusModeEnabled = false;
-            notificationsDnd = focusDndBefore;
-            quickSettingsStatusText = "Focus mode off";
-        }
-        persistSettings();
-    }
-
     function quickTileColor(active) {
         return active ? activePillColor : pillColor;
     }
@@ -1002,9 +879,6 @@ PanelWindow {
         hyprBlurEnabled = settingsStore.hyprBlurEnabled;
         hyprAnimationsEnabled = settingsStore.hyprAnimationsEnabled;
         notificationsDnd = settingsStore.doNotDisturb;
-        focusModeEnabled = settingsStore.focusModeEnabled;
-        mediaHiddenInFocus = settingsStore.mediaHiddenInFocus;
-        if (focusModeEnabled) notificationsDnd = true;
         powerProfile = settingsStore.powerProfile;
         settingsApplyingStored = false;
         restoreRememberedSettings();
@@ -1022,8 +896,6 @@ PanelWindow {
         settingsStore.hyprAnimationsEnabled = hyprAnimationsEnabled;
         settingsStore.doNotDisturb = notificationsDnd;
         settingsStore.powerProfile = powerProfile;
-        settingsStore.focusModeEnabled = focusModeEnabled;
-        settingsStore.mediaHiddenInFocus = mediaHiddenInFocus;
         settingsStore.rememberedVolumePercent = volumePercent;
         settingsStore.rememberedBrightnessPercent = quickBrightnessPercent;
         settingsStore.rememberedSourcePercent = sourcePercent;
@@ -1768,34 +1640,6 @@ PanelWindow {
     }
 
     Timer {
-        id: launcherCloseTimer
-        interval: popupAnimationMs
-        repeat: false
-        onTriggered: launcherClosing = false
-    }
-
-    Timer {
-        id: clipboardCloseTimer
-        interval: popupAnimationMs
-        repeat: false
-        onTriggered: clipboardClosing = false
-    }
-
-    Timer {
-        id: captureCloseTimer
-        interval: popupAnimationMs
-        repeat: false
-        onTriggered: captureClosing = false
-    }
-
-    Timer {
-        id: windowSwitcherCloseTimer
-        interval: popupAnimationMs
-        repeat: false
-        onTriggered: windowSwitcherClosing = false
-    }
-
-    Timer {
         id: hyprSettingsCloseTimer
         interval: popupAnimationMs
         repeat: false
@@ -1954,7 +1798,6 @@ PanelWindow {
         MusicPill {
             id: musicPill
             popupParentWindow: barWindow
-            visible: !(focusModeEnabled && mediaHiddenInFocus)
         }
 
         // ============ 右侧区域 ============
@@ -2382,6 +2225,40 @@ PanelWindow {
                     }
                 }
             }
+        }
+    }
+
+    PopupWindow {
+        id: popupClickAwayLayer
+        parentWindow: barWindow
+        visible: clickAwayOpen
+        implicitWidth: barWindow.screen ? barWindow.screen.width : barWindow.width
+        implicitHeight: barWindow.screen ? Math.max(1, barWindow.screen.height - barWindow.implicitHeight) : 720
+        relativeX: 0
+        relativeY: barWindow.implicitHeight
+        color: "transparent"
+        grabFocus: false
+        mask: Region {
+            Region {
+                x: 0
+                y: 0
+                width: popupClickAwayLayer.width
+                height: popupClickAwayLayer.height
+            }
+
+            Region {
+                intersection: Intersection.Subtract
+                x: clickAwayHoleX
+                y: clickAwayHoleY
+                width: clickAwayHoleWidth
+                height: clickAwayHoleHeight
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+            onClicked: closeAllPopups()
         }
     }
 
@@ -4132,37 +4009,5 @@ PanelWindow {
     QuickSettingsPanel {
         id: quickSettingsWindow
         bar: barWindow
-    }
-
-    Loader {
-        id: launcherPanel
-        active: controlCenterExtrasEnabled
-        sourceComponent: LauncherPanel {
-            bar: barWindow
-        }
-    }
-
-    Loader {
-        id: clipboardPanel
-        active: controlCenterExtrasEnabled
-        sourceComponent: ClipboardPanel {
-            bar: barWindow
-        }
-    }
-
-    Loader {
-        id: capturePanel
-        active: controlCenterExtrasEnabled
-        sourceComponent: CapturePanel {
-            bar: barWindow
-        }
-    }
-
-    Loader {
-        id: windowSwitcherPanel
-        active: controlCenterExtrasEnabled
-        sourceComponent: WindowSwitcherPanel {
-            bar: barWindow
-        }
     }
 }

@@ -114,17 +114,10 @@ Item {
                             { icon: root.bar.volumeIconText(), label: "Sound", sub: root.bar.volumeMuted ? "Muted" : root.bar.volumePercent + "%", action: "mute", active: !root.bar.volumeMuted },
                             { icon: "󰖨", label: "Display", sub: root.bar.displaySummary(), action: "display", active: true },
                             { icon: root.bar.notificationsDnd ? "󰂛" : "", label: "Notifications", sub: root.bar.unreadNotifications > 0 ? root.bar.unreadNotifications + " unread" : root.bar.notificationsDnd ? "DND" : "Clear", action: "notifications", active: root.bar.unreadNotifications > 0 || root.bar.notificationsDnd },
-                            { icon: "󰓅", label: "Power mode", sub: root.bar.powerProfile, action: "power", active: root.bar.powerProfile === "performance" }
-                        ].concat(root.bar.controlCenterExtrasEnabled ? [
-                            { icon: "", label: "Launcher", sub: "Apps · windows", action: "launcher", active: root.bar.launcherOpen },
-                            { icon: "", label: "Clipboard", sub: "History", action: "clipboard", active: root.bar.clipboardOpen },
-                            { icon: "", label: "Capture", sub: "Shot · record", action: "capture", active: root.bar.captureOpen },
-                            { icon: "󰖯", label: "Windows", sub: root.bar.shownWindowTitle || "Switcher", action: "windows", active: root.bar.windowSwitcherOpen },
-                            { icon: "󰒲", label: "Focus", sub: root.bar.focusModeEnabled ? "On" : "Off", action: "focus", active: root.bar.focusModeEnabled }
-                        ] : []).concat([
+                            { icon: "󰓅", label: "Power mode", sub: root.bar.powerProfile, action: "power", active: root.bar.powerProfile === "performance" },
                             { icon: "󰂄", label: "Animations", sub: root.bar.hyprAnimationsEnabled ? "On" : "Off", action: "animations", active: root.bar.hyprAnimationsEnabled },
                             { icon: "󰖑", label: "Blur", sub: root.bar.hyprBlurEnabled ? "On" : "Off", action: "blur", active: root.bar.hyprBlurEnabled }
-                        ])
+                        ]
 
                         Rectangle {
                             width: (quickSettingsColumn.width - 10) / 2
@@ -186,11 +179,6 @@ Item {
                                         root.bar.closePopupsExcept("power");
                                         root.bar.powerPopupOpen = true;
                                     }
-                                    else if (modelData.action === "launcher") root.bar.openLauncher();
-                                    else if (modelData.action === "clipboard") root.bar.openClipboardPanel();
-                                    else if (modelData.action === "capture") root.bar.openCapturePanel();
-                                    else if (modelData.action === "windows") root.bar.openWindowSwitcher();
-                                    else if (modelData.action === "focus") root.bar.toggleFocusMode();
                                     else if (modelData.action === "animations") root.bar.toggleHyprAnimations();
                                     else if (modelData.action === "blur") root.bar.toggleHyprBlur();
                                 }

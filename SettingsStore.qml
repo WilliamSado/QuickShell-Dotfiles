@@ -26,8 +26,6 @@ Item {
     property int rememberedSourcePercent: -1
     property bool rememberedMuted: false
     property bool rememberedSourceMuted: false
-    property bool focusModeEnabled: false
-    property bool mediaHiddenInFocus: true
 
     signal loaded()
     signal saved()
@@ -61,9 +59,7 @@ Item {
             "rememberedBrightnessPercent": rememberedBrightnessPercent,
             "rememberedSourcePercent": rememberedSourcePercent,
             "rememberedMuted": rememberedMuted,
-            "rememberedSourceMuted": rememberedSourceMuted,
-            "focusModeEnabled": focusModeEnabled,
-            "mediaHiddenInFocus": mediaHiddenInFocus
+            "rememberedSourceMuted": rememberedSourceMuted
         };
 
         var text = JSON.stringify(data, null, 2);
@@ -100,8 +96,6 @@ Item {
                     if (data.rememberedSourcePercent !== undefined) root.rememberedSourcePercent = data.rememberedSourcePercent;
                     if (data.rememberedMuted !== undefined) root.rememberedMuted = data.rememberedMuted;
                     if (data.rememberedSourceMuted !== undefined) root.rememberedSourceMuted = data.rememberedSourceMuted;
-                    if (data.focusModeEnabled !== undefined) root.focusModeEnabled = data.focusModeEnabled;
-                    if (data.mediaHiddenInFocus !== undefined) root.mediaHiddenInFocus = data.mediaHiddenInFocus;
                 } catch (error) {
                     console.warn("Could not parse quickshell settings:", error);
                 }

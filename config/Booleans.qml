@@ -28,14 +28,4 @@ QtObject {
     property bool performancePopupClosing: false
     property bool notificationCenterOpen: false
     property bool notificationCenterClosing: false
-    property bool launcherOpen: false
-    property bool launcherClosing: false
-    property bool clipboardOpen: false
-    property bool clipboardClosing: false
-    property bool captureOpen: false
-    property bool captureClosing: false
-    property bool windowSwitcherOpen: false
-    property bool windowSwitcherClosing: false
-    property bool focusModeEnabled: false
-    property bool mediaHiddenInFocus: true
 }
