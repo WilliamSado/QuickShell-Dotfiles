@@ -6,6 +6,7 @@ Item {
     id: root
 
     property string path: "/home/sado/.config/quickshell/state/settings.json"
+    property string languageCode: "zh_CN"
     property string themeName: "Tela Cyan"
     property string themeMode: "dark"
     property string wallpaperPath: ""
@@ -54,6 +55,7 @@ Item {
 
     function save() {
         var data = {
+            "languageCode": languageCode,
             "themeName": themeName,
             "themeMode": themeMode,
             "wallpaperPath": wallpaperPath,
@@ -104,6 +106,7 @@ Item {
             onStreamFinished: {
                 try {
                     var data = JSON.parse(text || "{}");
+                    if (data.languageCode !== undefined) root.languageCode = data.languageCode;
                     if (data.themeName !== undefined) root.themeName = data.themeName;
                     if (data.themeMode !== undefined) root.themeMode = data.themeMode;
                     if (data.wallpaperPath !== undefined) root.wallpaperPath = data.wallpaperPath;

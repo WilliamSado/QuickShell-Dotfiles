@@ -105,6 +105,13 @@ PanelWindow {
 
     property string networkPopupMode: "active"
     property string controlCenterPage: "launcher"
+    property string languageCode: "zh_CN"
+    property var translations: ({})
+    property int translationVersion: 0
+    readonly property var languageOptions: [
+        { code: "zh_CN", label: "简体中文", file: "zh_CN.json" },
+        { code: "en_US", label: "English", file: "en_US.json" }
+    ]
     property string currentThemeName: "Tela Cyan"
     property string themeMode: "dark"
     property string hyprWallpaperPath: ""
@@ -708,6 +715,39 @@ PanelWindow {
         toastRequested(icon || "󰋽", title || "", message || "", level || "info", progress === undefined ? -1 : progress, durationMs || 0);
     }
 
+    function tr(key, fallback) {
+        var version = translationVersion;
+        var value = translations[key];
+        return value === undefined || value === null || value === "" ? (fallback || key) : value;
+    }
+
+    function setLanguage(code) {
+        if (!code || languageCode === code) return;
+        languageCode = code;
+        loadTranslations();
+        persistSettings();
+        showToast("󰗊", tr("settings.language", "Language"), languageLabel(code), "success", -1, 1300);
+    }
+
+    function languageLabel(code) {
+        for (var i = 0; i < languageOptions.length; i++) {
+            if (languageOptions[i].code === code) return languageOptions[i].label;
+        }
+        return code;
+    }
+
+    function languageFile(code) {
+        for (var i = 0; i < languageOptions.length; i++) {
+            if (languageOptions[i].code === code) return languageOptions[i].file;
+        }
+        return "zh_CN.json";
+    }
+
+    function loadTranslations() {
+        i18nLoadProc.command = ["sh", "-c", "cat " + shellQuote("/home/sado/.config/quickshell/i18n/" + languageFile(languageCode)) + " 2>/dev/null || cat /home/sado/.config/quickshell/i18n/zh_CN.json 2>/dev/null || printf '{}'"];
+        i18nLoadProc.running = true;
+    }
+
     function updateNetworkIp() {
         var iface = activeNetworkInterface();
         if (iface.length === 0) {
@@ -1066,6 +1106,8 @@ PanelWindow {
 
     function applyStoredSettings() {
         settingsApplyingStored = true;
+        languageCode = settingsStore.languageCode || "zh_CN";
+        loadTranslations();
         currentThemeName = settingsStore.themeName;
         themeMode = settingsStore.themeMode === "light" ? "light" : "dark";
         dynamicThemeEnabled = settingsStore.dynamicThemeEnabled;
@@ -1110,6 +1152,7 @@ PanelWindow {
 
     function persistSettings() {
         if (settingsApplyingStored) return;
+        settingsStore.languageCode = languageCode;
         settingsStore.themeName = currentThemeName;
         settingsStore.themeMode = themeMode;
         settingsStore.wallpaperPath = hyprWallpaperPath;
@@ -1518,6 +1561,24 @@ PanelWindow {
     property int cpuUsage: 0
     property var lastCpuIdle: 0
     property var lastCpuTotal: 0
+
+    Process {
+        id: i18nLoadProc
+        command: ["sh", "-c", "cat /home/sado/.config/quickshell/i18n/zh_CN.json 2>/dev/null || printf '{}'"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                try {
+                    translations = JSON.parse(text || "{}");
+                } catch (error) {
+                    console.warn("Could not parse quickshell language file:", error);
+                    translations = ({});
+                }
+                translationVersion++;
+            }
+        }
+    }
 
     Process {
         id: cpuProc

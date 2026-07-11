@@ -98,24 +98,24 @@ Item {
     }
 
     readonly property var pages: [
-        { key: "launcher", label: "Launch", icon: "" },
-        { key: "clipboard", label: "Clip", icon: "" },
-        { key: "todo", label: "Todo", icon: "󰄱" },
-        { key: "capture", label: "Shot", icon: "" },
-        { key: "windows", label: "Win", icon: "󰖯" },
-        { key: "scratch", label: "Pad", icon: "󰹑" },
-        { key: "vpn", label: "VPN", icon: "󰖂" },
-        { key: "maintenance", label: "Clean", icon: "󰏖" },
-        { key: "services", label: "Svc", icon: "󰒋" },
-        { key: "keybinds", label: "Keys", icon: "󰌌" },
-        { key: "focus", label: "Focus", icon: "󰒲" }
+        { key: "launcher", labelKey: "control.launcher", fallback: "Launch", icon: "" },
+        { key: "clipboard", labelKey: "control.clipboard", fallback: "Clip", icon: "" },
+        { key: "todo", labelKey: "control.todo", fallback: "Todo", icon: "󰄱" },
+        { key: "capture", labelKey: "control.capture", fallback: "Shot", icon: "" },
+        { key: "windows", labelKey: "control.windows", fallback: "Win", icon: "󰖯" },
+        { key: "scratch", labelKey: "control.scratch", fallback: "Pad", icon: "󰹑" },
+        { key: "vpn", labelKey: "control.vpn", fallback: "VPN", icon: "󰖂" },
+        { key: "maintenance", labelKey: "control.maintenance", fallback: "Clean", icon: "󰏖" },
+        { key: "services", labelKey: "control.services", fallback: "Svc", icon: "󰒋" },
+        { key: "keybinds", labelKey: "control.keybinds", fallback: "Keys", icon: "󰌌" },
+        { key: "focus", labelKey: "control.focus", fallback: "Focus", icon: "󰒲" }
     ]
 
     function pageTitle() {
         for (var i = 0; i < pages.length; i++) {
-            if (pages[i].key === root.bar.controlCenterPage) return pages[i].label;
+            if (pages[i].key === root.bar.controlCenterPage) return root.bar.tr(pages[i].labelKey, pages[i].fallback);
         }
-        return "Control Center";
+        return root.bar.tr("control.title", "Control Center");
     }
 
     function shellQuote(value) {
@@ -1130,7 +1130,7 @@ Item {
                                 }
 
                                 Text {
-                                    text: modelData.label
+                                    text: root.bar.tr(modelData.labelKey, modelData.fallback)
                                     visible: root.pages.length <= 7
                                     color: root.bar.textColor
                                     font.family: root.bar.barFont

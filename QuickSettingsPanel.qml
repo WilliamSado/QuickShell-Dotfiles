@@ -109,24 +109,24 @@ Item {
 
                     Repeater {
                         model: [
-                            { icon: "", label: "WiFi", sub: root.bar.networkText(), action: "wifi", active: root.bar.networkText() !== "Disconnected" },
-                            { icon: "", label: "Bluetooth", sub: root.bar.bluetoothText(), action: "bluetooth", active: Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.enabled },
-                            { icon: root.bar.volumeIconText(), label: "Sound", sub: root.bar.volumeMuted ? "Muted" : root.bar.volumePercent + "%", action: "mute", active: !root.bar.volumeMuted },
-                            { icon: "󰖨", label: "Display", sub: root.bar.displaySummary(), action: "display", active: true },
-                            { icon: root.bar.notificationsDnd ? "󰂛" : "", label: "Notifications", sub: root.bar.unreadNotifications > 0 ? root.bar.unreadNotifications + " unread" : root.bar.notificationsDnd ? "DND" : "Clear", action: "notifications", active: root.bar.unreadNotifications > 0 || root.bar.notificationsDnd },
-                            { icon: "󰓅", label: "Power mode", sub: root.bar.powerProfile, action: "power", active: root.bar.powerProfile === "performance" },
-                            { icon: "", label: "Launcher", sub: "Control center", action: "launcher", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "launcher" },
-                            { icon: "", label: "Clipboard", sub: "History", action: "clipboard", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "clipboard" },
-                            { icon: "󰄱", label: "Todo", sub: (root.bar.todoItems || []).length + " items", action: "todo", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "todo" },
-                            { icon: "", label: "Capture", sub: "Screenshot", action: "capture", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "capture" },
-                            { icon: "󰖯", label: "Windows", sub: "Manager", action: "windows", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "windows" },
-                            { icon: "󰹑", label: "Scratch", sub: "Special ws", action: "scratch", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "scratch" },
-                            { icon: "󰖂", label: "VPN", sub: "Tunnels", action: "vpn", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "vpn" },
-                            { icon: "󰏖", label: "Maintain", sub: "Updates", action: "maintenance", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "maintenance" },
-                            { icon: "󰒲", label: "Focus", sub: root.bar.focusModeEnabled ? "DND on" : "Off", action: "focus", active: root.bar.focusModeEnabled },
-                            { icon: "󰊴", label: "Game mode", sub: root.bar.gameModeEnabled ? "Performance" : "Off", action: "game", active: root.bar.gameModeEnabled },
-                            { icon: "󰂄", label: "Animations", sub: root.bar.hyprAnimationsEnabled ? "On" : "Off", action: "animations", active: root.bar.hyprAnimationsEnabled },
-                            { icon: "󰖑", label: "Blur", sub: root.bar.hyprBlurEnabled ? "On" : "Off", action: "blur", active: root.bar.hyprBlurEnabled }
+                            { icon: "", label: root.bar.tr("settings.tab.wifi", "WiFi"), sub: root.bar.networkText(), action: "wifi", active: root.bar.networkText() !== "Disconnected" },
+                            { icon: "", label: root.bar.tr("settings.bluetooth", "Bluetooth"), sub: root.bar.bluetoothText(), action: "bluetooth", active: Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.enabled },
+                            { icon: root.bar.volumeIconText(), label: root.bar.tr("quick.sound", "Sound"), sub: root.bar.volumeMuted ? root.bar.tr("quick.muted", "Muted") : root.bar.volumePercent + "%", action: "mute", active: !root.bar.volumeMuted },
+                            { icon: "󰖨", label: root.bar.tr("settings.display", "Display"), sub: root.bar.displaySummary(), action: "display", active: true },
+                            { icon: root.bar.notificationsDnd ? "󰂛" : "", label: root.bar.tr("quick.notifications", "Notifications"), sub: root.bar.unreadNotifications > 0 ? root.bar.unreadNotifications + " " + root.bar.tr("quick.unread", "unread") : root.bar.notificationsDnd ? "DND" : root.bar.tr("quick.clear", "Clear"), action: "notifications", active: root.bar.unreadNotifications > 0 || root.bar.notificationsDnd },
+                            { icon: "󰓅", label: root.bar.tr("quick.powerMode", "Power mode"), sub: root.bar.powerProfile, action: "power", active: root.bar.powerProfile === "performance" },
+                            { icon: "", label: root.bar.tr("quick.launcher", "Launcher"), sub: root.bar.tr("control.title", "Control center"), action: "launcher", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "launcher" },
+                            { icon: "", label: root.bar.tr("quick.clipboard", "Clipboard"), sub: root.bar.tr("quick.history", "History"), action: "clipboard", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "clipboard" },
+                            { icon: "󰄱", label: root.bar.tr("control.todo", "Todo"), sub: (root.bar.todoItems || []).length + " " + root.bar.tr("quick.items", "items"), action: "todo", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "todo" },
+                            { icon: "", label: root.bar.tr("quick.capture", "Capture"), sub: root.bar.tr("quick.screenshot", "Screenshot"), action: "capture", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "capture" },
+                            { icon: "󰖯", label: root.bar.tr("quick.windows", "Windows"), sub: root.bar.tr("quick.manager", "Manager"), action: "windows", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "windows" },
+                            { icon: "󰹑", label: root.bar.tr("quick.scratch", "Scratch"), sub: root.bar.tr("quick.specialWs", "Special ws"), action: "scratch", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "scratch" },
+                            { icon: "󰖂", label: "VPN", sub: root.bar.tr("quick.tunnels", "Tunnels"), action: "vpn", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "vpn" },
+                            { icon: "󰏖", label: root.bar.tr("quick.maintain", "Maintain"), sub: root.bar.tr("quick.updates", "Updates"), action: "maintenance", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "maintenance" },
+                            { icon: "󰒲", label: root.bar.tr("control.focus", "Focus"), sub: root.bar.focusModeEnabled ? root.bar.tr("quick.dndOn", "DND on") : root.bar.tr("common.off", "Off"), action: "focus", active: root.bar.focusModeEnabled },
+                            { icon: "󰊴", label: root.bar.tr("quick.gameMode", "Game mode"), sub: root.bar.gameModeEnabled ? root.bar.tr("quick.performance", "Performance") : root.bar.tr("common.off", "Off"), action: "game", active: root.bar.gameModeEnabled },
+                            { icon: "󰂄", label: root.bar.tr("quick.animations", "Animations"), sub: root.bar.hyprAnimationsEnabled ? root.bar.tr("common.on", "On") : root.bar.tr("common.off", "Off"), action: "animations", active: root.bar.hyprAnimationsEnabled },
+                            { icon: "󰖑", label: root.bar.tr("quick.blur", "Blur"), sub: root.bar.hyprBlurEnabled ? root.bar.tr("common.on", "On") : root.bar.tr("common.off", "Off"), action: "blur", active: root.bar.hyprBlurEnabled }
                         ]
 
                         Rectangle {
@@ -314,9 +314,9 @@ Item {
 
                     Repeater {
                         model: [
-                            { icon: "", label: "Lock", command: ["hyprlock"] },
-                            { icon: "", label: "Reload", shell: "hyprctl reload" },
-                            { icon: "", label: "Power", command: ["systemctl", "poweroff"] }
+                            { icon: "", label: root.bar.tr("quick.lock", "Lock"), command: ["hyprlock"] },
+                            { icon: "", label: root.bar.tr("common.reload", "Reload"), shell: "hyprctl reload" },
+                            { icon: "", label: root.bar.tr("quick.power", "Power"), command: ["systemctl", "poweroff"] }
                         ]
 
                         Rectangle {

@@ -99,7 +99,7 @@ Item {
                     }
 
                     Text {
-                        text: "Hyprland Settings"
+                        text: root.bar.tr("settings.title", "Hyprland Settings")
                         color: root.bar.textColor
                         font.family: root.bar.barFont
                         font.pixelSize: 16
@@ -159,10 +159,10 @@ Item {
 
                     Repeater {
                         model: [
-                            { key: "wifi", icon: "", label: "WiFi" },
-                            { key: "bluetooth", icon: "", label: "Bluetooth" },
-                            { key: "display", icon: "󰍹", label: "Display" },
-                            { key: "theme", icon: "󰸉", label: "Theme" }
+                            { key: "wifi", icon: "", label: root.bar.tr("settings.tab.wifi", "WiFi") },
+                            { key: "bluetooth", icon: "", label: root.bar.tr("settings.tab.bluetooth", "Bluetooth") },
+                            { key: "display", icon: "󰍹", label: root.bar.tr("settings.tab.display", "Display") },
+                            { key: "theme", icon: "󰸉", label: root.bar.tr("settings.tab.theme", "Theme") }
                         ]
 
                         Rectangle {
@@ -214,7 +214,7 @@ Item {
                     visible: root.activeTab === "theme"
 
                     Text {
-                        text: "Wallpaper"
+                        text: root.bar.tr("settings.wallpaper", "Wallpaper")
                         color: root.bar.mutedTextColor
                         font.family: root.bar.barFont
                         font.pixelSize: 13
@@ -270,7 +270,7 @@ Item {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "Apply"
+                                text: root.bar.tr("common.apply", "Apply")
                                 color: root.bar.networkTextColor
                                 font.family: root.bar.barFont
                                 font.pixelSize: 13
@@ -328,7 +328,7 @@ Item {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "Scan"
+                                text: root.bar.tr("common.scan", "Scan")
                                 color: root.bar.networkTextColor
                                 font.family: root.bar.barFont
                                 font.pixelSize: 12
@@ -367,7 +367,7 @@ Item {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: root.bar.wallpaperRotationEnabled ? "Rotate on" : "Rotate off"
+                                text: root.bar.wallpaperRotationEnabled ? root.bar.tr("settings.rotateOn", "Rotate on") : root.bar.tr("settings.rotateOff", "Rotate off")
                                 color: root.bar.textColor
                                 font.family: root.bar.barFont
                                 font.pixelSize: 12
@@ -437,7 +437,7 @@ Item {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: root.bar.wallpaperRotationRandom ? "Random" : "Sequence"
+                                text: root.bar.wallpaperRotationRandom ? root.bar.tr("settings.random", "Random") : root.bar.tr("settings.sequence", "Sequence")
                                 color: root.bar.networkTextColor
                                 font.family: root.bar.barFont
                                 font.pixelSize: 12
@@ -459,7 +459,7 @@ Item {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "Next wallpaper"
+                                text: root.bar.tr("settings.nextWallpaper", "Next wallpaper")
                                 color: root.bar.networkTextColor
                                 font.family: root.bar.barFont
                                 font.pixelSize: 12
@@ -489,7 +489,7 @@ Item {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: root.bar.dynamicThemeEnabled ? "Wallpaper theme on" : "Use wallpaper color"
+                                text: root.bar.dynamicThemeEnabled ? root.bar.tr("settings.wallpaperThemeOn", "Wallpaper theme on") : root.bar.tr("settings.useWallpaperColor", "Use wallpaper color")
                                 color: root.bar.dynamicThemeEnabled ? root.bar.textColor : root.bar.networkTextColor
                                 font.family: root.bar.barFont
                                 font.pixelSize: 12
@@ -571,7 +571,7 @@ Item {
                     }
 
                     Text {
-                        text: "Mode"
+                        text: root.bar.tr("settings.mode", "Mode")
                         color: root.bar.mutedTextColor
                         font.family: root.bar.barFont
                         font.pixelSize: 13
@@ -592,7 +592,7 @@ Item {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "Dark"
+                                text: root.bar.tr("settings.dark", "Dark")
                                 color: root.bar.themeMode === "dark" ? root.bar.textColor : root.bar.mutedTextColor
                                 font.family: root.bar.barFont
                                 font.pixelSize: 12
@@ -617,8 +617,8 @@ Item {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "Light"
-                                color: root.bar.themeMode === "light" ? root.bar.textColor : root.bar.mutedTextColor
+                                text: root.bar.tr("settings.light", "Light")
+                            color: root.bar.themeMode === "light" ? root.bar.textColor : root.bar.mutedTextColor
                                 font.family: root.bar.barFont
                                 font.pixelSize: 12
                             }
@@ -634,7 +634,48 @@ Item {
                     }
 
                     Text {
-                        text: "Accent"
+                        text: root.bar.tr("settings.language", "Language")
+                        color: root.bar.mutedTextColor
+                        font.family: root.bar.barFont
+                        font.pixelSize: 13
+                    }
+
+                    RowLayout {
+                        width: parent.width
+                        height: 36
+                        spacing: 8
+
+                        Repeater {
+                            model: root.bar.languageOptions
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 36
+                                radius: 18
+                                color: root.bar.languageCode === modelData.code ? root.bar.activePillColor : languageMouse.containsMouse ? root.bar.sectionPillColor : root.bar.pillColor
+                                border.color: root.bar.popupBorderColor
+                                border.width: 1
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData.label
+                                    color: root.bar.languageCode === modelData.code ? root.bar.textColor : root.bar.mutedTextColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 12
+                                }
+
+                                MouseArea {
+                                    id: languageMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: root.bar.setLanguage(modelData.code)
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        text: root.bar.tr("settings.accent", "Accent")
                         color: root.bar.mutedTextColor
                         font.family: root.bar.barFont
                         font.pixelSize: 13
@@ -725,7 +766,7 @@ Item {
                         spacing: 8
 
                         Text {
-                            text: "Display"
+                            text: root.bar.tr("settings.display", "Display")
                             color: root.bar.mutedTextColor
                             font.family: root.bar.barFont
                             font.pixelSize: 13
@@ -753,8 +794,8 @@ Item {
 
                         Repeater {
                             model: [
-                                { label: "Refresh", mode: "refresh" },
-                                { label: "Preferred", mode: "preferred" },
+                                { label: root.bar.tr("common.refresh", "Refresh"), mode: "refresh" },
+                                { label: root.bar.tr("settings.preferred", "Preferred"), mode: "preferred" },
                                 { label: "1920x1080", mode: "1920x1080@60" },
                                 { label: "2560x1440", mode: "2560x1440@60" },
                                 { label: "3440x1440", mode: "3440x1440@144" },
@@ -764,7 +805,7 @@ Item {
                                 { label: "Scale 1.5", scale: 1.5 },
                                 { label: "Scale 1.75", scale: 1.75 },
                                 { label: "Scale 2.0", scale: 2.0 },
-                                { label: "Reload", mode: "reload" }
+                                { label: root.bar.tr("common.reload", "Reload"), mode: "reload" }
                             ]
 
                             Rectangle {
@@ -802,7 +843,7 @@ Item {
                         spacing: 8
 
                         Text {
-                            text: "Refresh rate"
+                            text: root.bar.tr("settings.refreshRate", "Refresh rate")
                             color: root.bar.mutedTextColor
                             font.family: root.bar.barFont
                             font.pixelSize: 12
@@ -884,7 +925,7 @@ Item {
                                 }
 
                                 Text {
-                                    text: "Network"
+                                    text: root.bar.tr("settings.network", "Network")
                                     color: root.bar.textColor
                                     font.family: root.bar.barFont
                                     font.pixelSize: 14
@@ -933,7 +974,7 @@ Item {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "Toggle WiFi"
+                                        text: root.bar.tr("settings.toggleWifi", "Toggle WiFi")
                                         color: root.bar.networkTextColor
                                         font.family: root.bar.barFont
                                         font.pixelSize: 12
@@ -955,7 +996,7 @@ Item {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: settingsNetworkColumn.wifiDevice && settingsNetworkColumn.wifiDevice.scannerEnabled ? "Scanning" : "Scan"
+                                        text: settingsNetworkColumn.wifiDevice && settingsNetworkColumn.wifiDevice.scannerEnabled ? root.bar.tr("common.scanning", "Scanning") : root.bar.tr("common.scan", "Scan")
                                         color: root.bar.networkTextColor
                                         font.family: root.bar.barFont
                                         font.pixelSize: 12
@@ -976,7 +1017,7 @@ Item {
                             Text {
                                 width: parent.width
                                 visible: !settingsNetworkColumn.wifiDevice
-                                text: settingsNetworkColumn.wiredDevice ? root.bar.networkNameText(settingsNetworkColumn.wiredDevice) : "No network device"
+                                text: settingsNetworkColumn.wiredDevice ? root.bar.networkNameText(settingsNetworkColumn.wiredDevice) : root.bar.tr("settings.noNetworkDevice", "No network device")
                                 color: root.bar.mutedTextColor
                                 font.family: root.bar.barFont
                                 font.pixelSize: 12
@@ -1007,7 +1048,7 @@ Item {
                                         }
 
                                         Text {
-                                            text: modelData.name || "Hidden network"
+                                            text: modelData.name || root.bar.tr("settings.hiddenNetwork", "Hidden network")
                                             color: root.bar.textColor
                                             font.family: root.bar.barFont
                                             font.pixelSize: 12
@@ -1067,7 +1108,7 @@ Item {
                                 }
 
                                 Text {
-                                    text: "Bluetooth"
+                                    text: root.bar.tr("settings.bluetooth", "Bluetooth")
                                     color: root.bar.textColor
                                     font.family: root.bar.barFont
                                     font.pixelSize: 14
@@ -1083,7 +1124,7 @@ Item {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.enabled ? "On" : "Off"
+                                        text: Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.enabled ? root.bar.tr("common.on", "On") : root.bar.tr("common.off", "Off")
                                         color: root.bar.bluetoothTextColor
                                         font.family: root.bar.barFont
                                         font.pixelSize: 12
@@ -1101,7 +1142,7 @@ Item {
 
                             Text {
                                 width: parent.width
-                                text: Bluetooth.defaultAdapter ? root.bar.bluetoothConnectedDeviceText() || Bluetooth.defaultAdapter.name || "Bluetooth" : "No adapter"
+                                text: Bluetooth.defaultAdapter ? root.bar.bluetoothConnectedDeviceText() || Bluetooth.defaultAdapter.name || root.bar.tr("settings.bluetooth", "Bluetooth") : root.bar.tr("settings.noAdapter", "No adapter")
                                 color: root.bar.mutedTextColor
                                 font.family: root.bar.barFont
                                 font.pixelSize: 12
@@ -1121,7 +1162,7 @@ Item {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.discovering ? "Scanning" : "Scan"
+                                        text: Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.discovering ? root.bar.tr("common.scanning", "Scanning") : root.bar.tr("common.scan", "Scan")
                                         color: root.bar.bluetoothTextColor
                                         font.family: root.bar.barFont
                                         font.pixelSize: 12
@@ -1143,7 +1184,7 @@ Item {
                             Text {
                                 width: parent.width
                                 visible: !Bluetooth.defaultAdapter || !Bluetooth.defaultAdapter.enabled
-                                text: Bluetooth.defaultAdapter ? "Bluetooth off" : "No bluetooth adapter"
+                                text: Bluetooth.defaultAdapter ? root.bar.tr("settings.bluetoothOff", "Bluetooth off") : root.bar.tr("settings.noBluetoothAdapter", "No bluetooth adapter")
                                 color: root.bar.mutedTextColor
                                 font.family: root.bar.barFont
                                 font.pixelSize: 12
@@ -1229,7 +1270,7 @@ Item {
                             spacing: 8
 
                             Text {
-                                text: "Gaps"
+                                text: root.bar.tr("settings.gaps", "Gaps")
                                 color: root.bar.mutedTextColor
                                 font.family: root.bar.barFont
                                 font.pixelSize: 13
@@ -1251,7 +1292,7 @@ Item {
                                 model: [
                                     { label: "-", delta: -1 },
                                     { label: "+", delta: 1 },
-                                    { label: "Apply", apply: true }
+                                    { label: root.bar.tr("common.apply", "Apply"), apply: true }
                                 ]
 
                                 Rectangle {
@@ -1294,7 +1335,7 @@ Item {
                             spacing: 8
 
                             Text {
-                                text: "Rounding"
+                                text: root.bar.tr("settings.rounding", "Rounding")
                                 color: root.bar.mutedTextColor
                                 font.family: root.bar.barFont
                                 font.pixelSize: 13
@@ -1316,7 +1357,7 @@ Item {
                                 model: [
                                     { label: "-", delta: -1 },
                                     { label: "+", delta: 1 },
-                                    { label: "Apply", apply: true }
+                                    { label: root.bar.tr("common.apply", "Apply"), apply: true }
                                 ]
 
                                 Rectangle {
@@ -1356,9 +1397,9 @@ Item {
 
                     Repeater {
                         model: [
-                            { label: root.bar.hyprAnimationsEnabled ? "Animations on" : "Animations off", action: "animations" },
-                            { label: root.bar.hyprBlurEnabled ? "Blur on" : "Blur off", action: "blur" },
-                            { label: "Reload Hyprland", action: "reload" }
+                            { label: root.bar.hyprAnimationsEnabled ? root.bar.tr("settings.animationsOn", "Animations on") : root.bar.tr("settings.animationsOff", "Animations off"), action: "animations" },
+                            { label: root.bar.hyprBlurEnabled ? root.bar.tr("settings.blurOn", "Blur on") : root.bar.tr("settings.blurOff", "Blur off"), action: "blur" },
+                            { label: root.bar.tr("settings.reloadHyprland", "Reload Hyprland"), action: "reload" }
                         ]
 
                         Rectangle {
