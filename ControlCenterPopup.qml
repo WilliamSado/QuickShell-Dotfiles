@@ -121,7 +121,7 @@ Item {
         if (root.bar.controlCenterPage === "scratch") return 310;
         if (root.bar.controlCenterPage === "vpn") return 310;
         if (root.bar.controlCenterPage === "maintenance") return 310;
-        if (root.bar.controlCenterPage === "focus") return 260;
+        if (root.bar.controlCenterPage === "focus") return 330;
         return 170;
     }
 
@@ -2497,6 +2497,94 @@ Item {
                             font.family: root.bar.barFont
                             font.pixelSize: 12
                             wrapMode: Text.WordWrap
+                        }
+
+                        RowLayout {
+                            width: parent.width
+                            height: 44
+                            spacing: 10
+
+                            Text {
+                                text: "专注计时"
+                                color: root.bar.textColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 13
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 120
+                                Layout.preferredHeight: 32
+                                radius: 16
+                                color: root.bar.pillColor
+
+                                Row {
+                                    anchors.centerIn: parent
+                                    spacing: 12
+
+                                    Text {
+                                        text: "-"
+                                        color: root.bar.networkTextColor
+                                        font.family: root.bar.barFont
+                                        font.pixelSize: 14
+                                        anchors.verticalCenter: parent.verticalCenter
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            anchors.margins: -8
+                                            onClicked: root.bar.adjustFocusTimerMinutes(-5)
+                                        }
+                                    }
+
+                                    Text {
+                                        text: root.bar.focusTimerText()
+                                        color: root.bar.textColor
+                                        font.family: root.bar.barFont
+                                        font.pixelSize: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Text {
+                                        text: "+"
+                                        color: root.bar.networkTextColor
+                                        font.family: root.bar.barFont
+                                        font.pixelSize: 14
+                                        anchors.verticalCenter: parent.verticalCenter
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            anchors.margins: -8
+                                            onClicked: root.bar.adjustFocusTimerMinutes(5)
+                                        }
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 78
+                                Layout.preferredHeight: 32
+                                radius: 16
+                                color: focusTimerMouse.containsMouse ? root.bar.activePillColor : root.bar.focusTimerRunning ? root.bar.activePillColor : root.bar.pillColor
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: root.bar.focusTimerRunning ? "Stop" : "Start"
+                                    color: root.bar.textColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 12
+                                }
+
+                                MouseArea {
+                                    id: focusTimerMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: {
+                                        if (root.bar.focusTimerRunning) root.bar.stopFocusTimer();
+                                        else root.bar.startFocusTimer();
+                                    }
+                                }
+                            }
                         }
 
                         RowLayout {

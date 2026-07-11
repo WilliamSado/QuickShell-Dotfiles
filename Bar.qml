@@ -134,6 +134,9 @@ PanelWindow {
     property bool notificationsDnd: false
     property bool focusModeEnabled: false
     property bool mediaHiddenInFocus: true
+    property int focusTimerMinutes: 25
+    property int focusTimerRemainingSeconds: 0
+    property bool focusTimerRunning: false
     property bool dndBeforeFocusMode: false
     property bool gameModeEnabled: false
     property var gameModeRestoreState: ({})
@@ -1083,6 +1086,7 @@ PanelWindow {
         notificationsDnd = settingsStore.doNotDisturb;
         focusModeEnabled = settingsStore.focusModeEnabled;
         mediaHiddenInFocus = settingsStore.mediaHiddenInFocus;
+        focusTimerMinutes = Math.max(1, Math.min(240, settingsStore.focusTimerMinutes));
         gameModeEnabled = settingsStore.gameModeEnabled;
         recentLauncherApps = settingsStore.recentLauncherApps;
         todoItems = settingsStore.todoItems;
@@ -1120,6 +1124,7 @@ PanelWindow {
         settingsStore.doNotDisturb = notificationsDnd;
         settingsStore.focusModeEnabled = focusModeEnabled;
         settingsStore.mediaHiddenInFocus = mediaHiddenInFocus;
+        settingsStore.focusTimerMinutes = focusTimerMinutes;
         settingsStore.gameModeEnabled = gameModeEnabled;
         settingsStore.dynamicThemeEnabled = dynamicThemeEnabled;
         settingsStore.dynamicThemeColors = dynamicThemeColors;
@@ -1289,6 +1294,11 @@ PanelWindow {
             notificationsDnd = true;
         } else {
             notificationsDnd = dndBeforeFocusMode;
+            if (focusTimerRunning) {
+                focusTimerRunning = false;
+                focusTimerRemainingSeconds = 0;
+                focusTimerTick.stop();
+            }
         }
 
         focusModeEnabled = enabled;
@@ -1321,6 +1331,43 @@ PanelWindow {
         focusDimNotifications = !focusDimNotifications;
         persistSettings();
         showToast("", "Focus Notifications", focusDimNotifications ? "Dimmed" : "Normal", "info", -1, 1400);
+    }
+
+    function focusTimerText() {
+        if (!focusTimerRunning && focusTimerRemainingSeconds <= 0) return focusTimerMinutes + " min";
+        var seconds = Math.max(0, focusTimerRemainingSeconds);
+        var minutes = Math.floor(seconds / 60);
+        var rest = seconds % 60;
+        return minutes + ":" + (rest < 10 ? "0" + rest : rest);
+    }
+
+    function adjustFocusTimerMinutes(delta) {
+        focusTimerMinutes = Math.max(1, Math.min(240, focusTimerMinutes + delta));
+        if (!focusTimerRunning) focusTimerRemainingSeconds = 0;
+        persistSettings();
+    }
+
+    function startFocusTimer() {
+        focusTimerRemainingSeconds = Math.max(1, focusTimerMinutes) * 60;
+        focusTimerRunning = true;
+        if (!focusModeEnabled) setFocusMode(true);
+        focusTimerTick.restart();
+        showToast("󰒲", "Focus Timer", focusTimerMinutes + " minutes", "success", -1, 1500);
+    }
+
+    function stopFocusTimer() {
+        focusTimerRunning = false;
+        focusTimerRemainingSeconds = 0;
+        focusTimerTick.stop();
+        showToast("󰒲", "Focus Timer", "Stopped", "info", -1, 1200);
+    }
+
+    function finishFocusTimer() {
+        focusTimerRunning = false;
+        focusTimerRemainingSeconds = 0;
+        focusTimerTick.stop();
+        if (focusModeEnabled) setFocusMode(false);
+        showToast("󰒲", "Focus Timer", "Finished", "success", -1, 2400);
     }
 
     function setGameMode(enabled) {
@@ -2134,6 +2181,17 @@ PanelWindow {
         repeat: true
         running: wallpaperRotationEnabled && wallpaperFiles.length > 0
         onTriggered: rotateWallpaperNow()
+    }
+
+    Timer {
+        id: focusTimerTick
+        interval: 1000
+        repeat: true
+        running: focusTimerRunning
+        onTriggered: {
+            focusTimerRemainingSeconds = Math.max(0, focusTimerRemainingSeconds - 1);
+            if (focusTimerRemainingSeconds <= 0) finishFocusTimer();
+        }
     }
 
     Timer {

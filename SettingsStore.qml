@@ -32,6 +32,7 @@ Item {
     property bool rememberedSourceMuted: false
     property bool focusModeEnabled: false
     property bool mediaHiddenInFocus: true
+    property int focusTimerMinutes: 25
     property bool dynamicThemeEnabled: false
     property var dynamicThemeColors: ({})
     property var recentLauncherApps: []
@@ -79,6 +80,7 @@ Item {
             "rememberedSourceMuted": rememberedSourceMuted,
             "focusModeEnabled": focusModeEnabled,
             "mediaHiddenInFocus": mediaHiddenInFocus,
+            "focusTimerMinutes": focusTimerMinutes,
             "dynamicThemeEnabled": dynamicThemeEnabled,
             "dynamicThemeColors": dynamicThemeColors,
             "recentLauncherApps": recentLauncherApps,
@@ -128,6 +130,7 @@ Item {
                     if (data.rememberedSourceMuted !== undefined) root.rememberedSourceMuted = data.rememberedSourceMuted;
                     if (data.focusModeEnabled !== undefined) root.focusModeEnabled = data.focusModeEnabled;
                     if (data.mediaHiddenInFocus !== undefined) root.mediaHiddenInFocus = data.mediaHiddenInFocus;
+                    if (data.focusTimerMinutes !== undefined) root.focusTimerMinutes = data.focusTimerMinutes;
                     if (data.dynamicThemeEnabled !== undefined) root.dynamicThemeEnabled = data.dynamicThemeEnabled;
                     if (data.dynamicThemeColors !== undefined) root.dynamicThemeColors = data.dynamicThemeColors;
                     if (data.recentLauncherApps !== undefined && data.recentLauncherApps.length !== undefined) root.recentLauncherApps = data.recentLauncherApps;
