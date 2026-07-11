@@ -117,6 +117,7 @@ Item {
                             { icon: "󰓅", label: "Power mode", sub: root.bar.powerProfile, action: "power", active: root.bar.powerProfile === "performance" },
                             { icon: "", label: "Launcher", sub: "Control center", action: "launcher", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "launcher" },
                             { icon: "", label: "Clipboard", sub: "History", action: "clipboard", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "clipboard" },
+                            { icon: "󰄱", label: "Todo", sub: (root.bar.todoItems || []).length + " items", action: "todo", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "todo" },
                             { icon: "", label: "Capture", sub: "Screenshot", action: "capture", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "capture" },
                             { icon: "󰖯", label: "Windows", sub: "Manager", action: "windows", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "windows" },
                             { icon: "󰖂", label: "VPN", sub: "Tunnels", action: "vpn", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "vpn" },
@@ -185,6 +186,7 @@ Item {
                                     }
                                     else if (modelData.action === "launcher") root.bar.openControlCenterFromQuickSettings("launcher");
                                     else if (modelData.action === "clipboard") root.bar.openControlCenterFromQuickSettings("clipboard");
+                                    else if (modelData.action === "todo") root.bar.openControlCenterFromQuickSettings("todo");
                                     else if (modelData.action === "capture") root.bar.openControlCenterFromQuickSettings("capture");
                                     else if (modelData.action === "windows") root.bar.openControlCenterFromQuickSettings("windows");
                                     else if (modelData.action === "vpn") root.bar.openControlCenterFromQuickSettings("vpn");

@@ -133,6 +133,7 @@ PanelWindow {
     property var dynamicThemeColors: ({})
     property string dynamicThemeStatus: "Ready"
     property var recentLauncherApps: []
+    property var todoItems: []
     property bool focusDimNotifications: false
     property string captureLastPath: ""
     property var notificationHistory: []
@@ -1073,6 +1074,7 @@ PanelWindow {
         mediaHiddenInFocus = settingsStore.mediaHiddenInFocus;
         gameModeEnabled = settingsStore.gameModeEnabled;
         recentLauncherApps = settingsStore.recentLauncherApps;
+        todoItems = settingsStore.todoItems;
         focusDimNotifications = settingsStore.focusDimNotifications;
         captureLastPath = settingsStore.captureLastPath;
         if (gameModeEnabled) {
@@ -1108,6 +1110,7 @@ PanelWindow {
         settingsStore.dynamicThemeEnabled = dynamicThemeEnabled;
         settingsStore.dynamicThemeColors = dynamicThemeColors;
         settingsStore.recentLauncherApps = recentLauncherApps;
+        settingsStore.todoItems = todoItems;
         settingsStore.focusDimNotifications = focusDimNotifications;
         settingsStore.captureLastPath = captureLastPath;
         settingsStore.powerProfile = powerProfile;

@@ -35,6 +35,7 @@ Item {
     property bool focusDimNotifications: false
     property string captureLastPath: ""
     property bool gameModeEnabled: false
+    property var todoItems: []
 
     signal loaded()
     signal saved()
@@ -77,7 +78,8 @@ Item {
             "recentLauncherApps": recentLauncherApps,
             "focusDimNotifications": focusDimNotifications,
             "captureLastPath": captureLastPath,
-            "gameModeEnabled": gameModeEnabled
+            "gameModeEnabled": gameModeEnabled,
+            "todoItems": todoItems
         };
 
         var text = JSON.stringify(data, null, 2);
@@ -123,6 +125,7 @@ Item {
                     if (data.focusDimNotifications !== undefined) root.focusDimNotifications = data.focusDimNotifications;
                     if (data.captureLastPath !== undefined) root.captureLastPath = data.captureLastPath;
                     if (data.gameModeEnabled !== undefined) root.gameModeEnabled = data.gameModeEnabled;
+                    if (data.todoItems !== undefined && data.todoItems.length !== undefined) root.todoItems = data.todoItems;
                 } catch (error) {
                     console.warn("Could not parse quickshell settings:", error);
                 }

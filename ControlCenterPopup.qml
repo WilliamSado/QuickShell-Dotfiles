@@ -27,6 +27,7 @@ Item {
     property var vpnItems: []
     property string vpnStatus: "Ready"
     property bool vpnBusy: false
+    property string todoInput: ""
     property var launcherApps: []
     property string launcherQuery: ""
     property string launcherStatus: "Ready"
@@ -40,6 +41,7 @@ Item {
         { type: "builtin", icon: "󰒓", name: "Settings", sub: "Hyprland settings", action: "settings" },
         { type: "builtin", icon: "", name: "Capture", sub: "Screenshot / recording", action: "capture" },
         { type: "builtin", icon: "", name: "Clipboard", sub: "Clipboard history", action: "clipboard" },
+        { type: "builtin", icon: "󰄱", name: "Todo", sub: "Quick tasks", action: "todo" },
         { type: "builtin", icon: "󰖯", name: "Windows", sub: "Window manager", action: "windows" },
         { type: "builtin", icon: "󰖂", name: "VPN", sub: "Network tunnel", action: "vpn" },
         { type: "builtin", icon: "󰏖", name: "Maintenance", sub: "Updates / cache", action: "maintenance" },
@@ -60,6 +62,8 @@ Item {
             if (root.bar.controlCenterPage === "launcher") {
                 root.refreshLauncher();
                 root.refreshWindows();
+            } else if (root.bar.controlCenterPage === "todo") {
+                Qt.callLater(function() { todoInputField.forceActiveFocus(); });
             } else if (root.bar.controlCenterPage === "clipboard") {
                 root.refreshClipboard();
             } else if (root.bar.controlCenterPage === "capture") {
@@ -77,6 +81,7 @@ Item {
     readonly property var pages: [
         { key: "launcher", label: "Launch", icon: "" },
         { key: "clipboard", label: "Clip", icon: "" },
+        { key: "todo", label: "Todo", icon: "󰄱" },
         { key: "capture", label: "Shot", icon: "" },
         { key: "windows", label: "Win", icon: "󰖯" },
         { key: "vpn", label: "VPN", icon: "󰖂" },
@@ -105,6 +110,7 @@ Item {
     function pagePanelHeight() {
         if (root.bar.controlCenterPage === "launcher") return 350;
         if (root.bar.controlCenterPage === "clipboard") return 310;
+        if (root.bar.controlCenterPage === "todo") return 310;
         if (root.bar.controlCenterPage === "capture") return 292;
         if (root.bar.controlCenterPage === "windows") return 350;
         if (root.bar.controlCenterPage === "vpn") return 310;
@@ -116,6 +122,54 @@ Item {
     function refreshClipboard() {
         clipboardStatus = "Loading";
         clipboardListProc.running = true;
+    }
+
+    function todoRemaining() {
+        var count = 0;
+        var items = root.bar.todoItems || [];
+        for (var i = 0; i < items.length; i++) {
+            if (!items[i].done) count++;
+        }
+        return count;
+    }
+
+    function addTodo() {
+        var text = todoInput.trim();
+        if (text.length === 0) return;
+
+        var items = (root.bar.todoItems || []).slice();
+        items.unshift({
+            id: Date.now(),
+            text: text,
+            done: false
+        });
+        root.bar.todoItems = items.slice(0, 40);
+        todoInput = "";
+        root.bar.persistSettings();
+        root.bar.showToast("󰄱", "Todo", "Added", "success", -1, 1200);
+    }
+
+    function toggleTodo(index) {
+        var items = (root.bar.todoItems || []).slice();
+        if (index < 0 || index >= items.length) return;
+        var item = items[index];
+        items[index] = {
+            id: item.id,
+            text: item.text,
+            done: !item.done
+        };
+        root.bar.todoItems = items;
+        root.bar.persistSettings();
+        root.bar.showToast("󰄱", "Todo", items[index].done ? "Completed" : "Restored", "info", -1, 1000);
+    }
+
+    function deleteTodo(index) {
+        var items = (root.bar.todoItems || []).slice();
+        if (index < 0 || index >= items.length) return;
+        items.splice(index, 1);
+        root.bar.todoItems = items;
+        root.bar.persistSettings();
+        root.bar.showToast("󰄱", "Todo", "Deleted", "info", -1, 1000);
     }
 
     function clipboardPreview(line) {
@@ -661,6 +715,9 @@ Item {
         } else if (item.action === "clipboard") {
             root.bar.controlCenterPage = "clipboard";
             refreshClipboard();
+        } else if (item.action === "todo") {
+            root.bar.controlCenterPage = "todo";
+            Qt.callLater(function() { todoInputField.forceActiveFocus(); });
         } else if (item.action === "windows") {
             root.bar.controlCenterPage = "windows";
             refreshWindows();
@@ -721,7 +778,7 @@ Item {
         relativeX: Math.max(root.bar.barSideMargin, root.bar.width - implicitWidth - root.bar.barSideMargin)
         relativeY: root.bar.implicitHeight + 22
         color: "transparent"
-        grabFocus: root.bar.controlCenterOpen && root.bar.controlCenterPage === "launcher"
+        grabFocus: root.bar.controlCenterOpen && (root.bar.controlCenterPage === "launcher" || root.bar.controlCenterPage === "todo")
         onClosed: root.bar.closeControlCenter()
         onVisibleChanged: {
             if (visible && root.bar.controlCenterPage === "launcher") {
@@ -729,6 +786,7 @@ Item {
                 root.refreshWindows();
                 Qt.callLater(function() { launcherSearch.forceActiveFocus(); });
             }
+            if (visible && root.bar.controlCenterPage === "todo") Qt.callLater(function() { todoInputField.forceActiveFocus(); });
             if (visible && root.bar.controlCenterPage === "clipboard") root.refreshClipboard();
             if (visible && root.bar.controlCenterPage === "windows") root.refreshWindows();
             if (visible && root.bar.controlCenterPage === "capture") root.refreshCaptureTools();
@@ -853,6 +911,7 @@ Item {
                                         root.refreshWindows();
                                         Qt.callLater(function() { launcherSearch.forceActiveFocus(); });
                                     }
+                                    if (modelData.key === "todo") Qt.callLater(function() { todoInputField.forceActiveFocus(); });
                                     if (modelData.key === "clipboard") root.refreshClipboard();
                                     if (modelData.key === "windows") root.refreshWindows();
                                     if (modelData.key === "capture") root.refreshCaptureTools();
@@ -871,7 +930,7 @@ Item {
                     color: root.bar.sectionPillColor
 
                     Column {
-                        visible: root.bar.controlCenterPage !== "focus" && root.bar.controlCenterPage !== "clipboard" && root.bar.controlCenterPage !== "capture" && root.bar.controlCenterPage !== "windows" && root.bar.controlCenterPage !== "vpn" && root.bar.controlCenterPage !== "maintenance" && root.bar.controlCenterPage !== "launcher"
+                        visible: root.bar.controlCenterPage !== "focus" && root.bar.controlCenterPage !== "clipboard" && root.bar.controlCenterPage !== "todo" && root.bar.controlCenterPage !== "capture" && root.bar.controlCenterPage !== "windows" && root.bar.controlCenterPage !== "vpn" && root.bar.controlCenterPage !== "maintenance" && root.bar.controlCenterPage !== "launcher"
                         anchors.centerIn: parent
                         spacing: 8
 
@@ -1454,6 +1513,211 @@ Item {
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         onClicked: root.copyCapturePath()
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Column {
+                        visible: root.bar.controlCenterPage === "todo"
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 14
+                        spacing: 10
+
+                        Rectangle {
+                            width: parent.width
+                            height: 42
+                            radius: 18
+                            color: root.bar.pillColor
+                            border.color: todoInputField.activeFocus ? root.bar.networkTextColor : "transparent"
+                            border.width: todoInputField.activeFocus ? 1 : 0
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 10
+                                spacing: 8
+
+                                Text {
+                                    text: "󰄱"
+                                    color: root.bar.mutedTextColor
+                                    font.family: root.bar.iconFont
+                                    font.pixelSize: 14
+                                    Layout.alignment: Qt.AlignVCenter
+                                }
+
+                                TextInput {
+                                    id: todoInputField
+                                    Layout.fillWidth: true
+                                    Layout.alignment: Qt.AlignVCenter
+                                    text: root.todoInput
+                                    color: root.bar.textColor
+                                    selectionColor: root.bar.activePillColor
+                                    selectedTextColor: root.bar.textColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 13
+                                    clip: true
+                                    onTextChanged: root.todoInput = text
+                                    Keys.onEscapePressed: root.bar.closeControlCenter()
+                                    Keys.onReturnPressed: root.addTodo()
+                                }
+
+                                Rectangle {
+                                    Layout.preferredWidth: 54
+                                    Layout.preferredHeight: 28
+                                    radius: 14
+                                    color: addTodoMouse.containsMouse ? root.bar.activePillColor : root.bar.sectionPillColor
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "Add"
+                                        color: root.bar.textColor
+                                        font.family: root.bar.barFont
+                                        font.pixelSize: 11
+                                    }
+
+                                    MouseArea {
+                                        id: addTodoMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        onClicked: root.addTodo()
+                                    }
+                                }
+                            }
+                        }
+
+                        RowLayout {
+                            width: parent.width
+                            height: 28
+                            spacing: 8
+
+                            Text {
+                                text: root.todoRemaining() + " active"
+                                color: root.bar.mutedTextColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 12
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Text {
+                                text: (root.bar.todoItems || []).length + " total"
+                                color: root.bar.mutedTextColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 12
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: (root.bar.todoItems || []).length === 0
+                            text: "No tasks yet"
+                            color: root.bar.mutedTextColor
+                            font.family: root.bar.barFont
+                            font.pixelSize: 13
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+
+                        Flickable {
+                            width: parent.width
+                            height: 208
+                            contentWidth: width
+                            contentHeight: todoList.implicitHeight
+                            clip: true
+                            visible: (root.bar.todoItems || []).length > 0
+
+                            Column {
+                                id: todoList
+                                width: parent.width
+                                spacing: 8
+
+                                Repeater {
+                                    model: root.bar.todoItems || []
+
+                                    Rectangle {
+                                        width: todoList.width
+                                        height: 48
+                                        radius: 14
+                                        color: todoItemMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+                                        opacity: modelData.done ? 0.72 : 1
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 10
+                                            spacing: 10
+
+                                            Rectangle {
+                                                Layout.preferredWidth: 24
+                                                Layout.preferredHeight: 24
+                                                radius: 12
+                                                color: modelData.done ? root.bar.networkTextColor : "transparent"
+                                                border.color: root.bar.mutedTextColor
+                                                border.width: 1
+                                                Layout.alignment: Qt.AlignVCenter
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: modelData.done ? "" : ""
+                                                    color: root.bar.textColor
+                                                    font.family: root.bar.iconFont
+                                                    font.pixelSize: 11
+                                                }
+
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    onClicked: root.toggleTodo(index)
+                                                }
+                                            }
+
+                                            Text {
+                                                Layout.fillWidth: true
+                                                Layout.alignment: Qt.AlignVCenter
+                                                text: modelData.text
+                                                color: modelData.done ? root.bar.mutedTextColor : root.bar.textColor
+                                                font.family: root.bar.barFont
+                                                font.pixelSize: 12
+                                                elide: Text.ElideRight
+                                            }
+
+                                            Rectangle {
+                                                Layout.preferredWidth: 28
+                                                Layout.preferredHeight: 28
+                                                radius: 14
+                                                color: deleteTodoMouse.containsMouse ? root.bar.sectionPillColor : "transparent"
+                                                Layout.alignment: Qt.AlignVCenter
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: ""
+                                                    color: root.bar.cpuTextColor
+                                                    font.family: root.bar.iconFont
+                                                    font.pixelSize: 11
+                                                }
+
+                                                MouseArea {
+                                                    id: deleteTodoMouse
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    onClicked: root.deleteTodo(index)
+                                                }
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: todoItemMouse
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                            anchors.top: parent.top
+                                            anchors.bottom: parent.bottom
+                                            anchors.leftMargin: 42
+                                            anchors.rightMargin: 42
+                                            hoverEnabled: true
+                                            onClicked: root.toggleTodo(index)
+                                        }
                                     }
                                 }
                             }
