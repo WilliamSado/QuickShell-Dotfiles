@@ -10,6 +10,7 @@ Item {
 
     property var clipboardItems: []
     property string clipboardStatus: "Ready"
+    property string clipboardQuery: ""
     property string captureStatus: "Ready"
     property bool recording: false
     property string recordingPath: ""
@@ -76,6 +77,7 @@ Item {
                 Qt.callLater(function() { todoInputField.forceActiveFocus(); });
             } else if (root.bar.controlCenterPage === "clipboard") {
                 root.refreshClipboard();
+                Qt.callLater(function() { clipboardSearch.forceActiveFocus(); });
             } else if (root.bar.controlCenterPage === "capture") {
                 root.refreshCaptureTools();
             } else if (root.bar.controlCenterPage === "windows") {
@@ -129,7 +131,7 @@ Item {
 
     function pagePanelHeight() {
         if (root.bar.controlCenterPage === "launcher") return 350;
-        if (root.bar.controlCenterPage === "clipboard") return 310;
+        if (root.bar.controlCenterPage === "clipboard") return 360;
         if (root.bar.controlCenterPage === "todo") return 310;
         if (root.bar.controlCenterPage === "capture") return 292;
         if (root.bar.controlCenterPage === "windows") return 350;
@@ -222,6 +224,18 @@ Item {
         var text = String(line || "").replace(/^\s*\d+\s+/, "");
         text = text.replace(/\s+/g, " ").trim();
         return text.length > 0 ? text : "Clipboard item";
+    }
+
+    function filteredClipboardItems() {
+        var query = clipboardQuery.toLowerCase().trim();
+        if (query.length === 0) return clipboardItems;
+
+        var items = [];
+        for (var i = 0; i < clipboardItems.length; i++) {
+            var preview = clipboardPreview(clipboardItems[i]).toLowerCase();
+            if (preview.indexOf(query) >= 0) items.push(clipboardItems[i]);
+        }
+        return items;
     }
 
     function copyClipboardItem(line) {
@@ -907,6 +921,7 @@ Item {
         } else if (item.action === "clipboard") {
             root.bar.controlCenterPage = "clipboard";
             refreshClipboard();
+            Qt.callLater(function() { clipboardSearch.forceActiveFocus(); });
         } else if (item.action === "todo") {
             root.bar.controlCenterPage = "todo";
             Qt.callLater(function() { todoInputField.forceActiveFocus(); });
@@ -989,7 +1004,7 @@ Item {
         relativeX: Math.max(root.bar.barSideMargin, root.bar.width - implicitWidth - root.bar.barSideMargin)
         relativeY: root.bar.implicitHeight + 22
         color: "transparent"
-        grabFocus: root.bar.controlCenterOpen && (root.bar.controlCenterPage === "launcher" || root.bar.controlCenterPage === "todo" || root.bar.controlCenterPage === "keybinds")
+        grabFocus: root.bar.controlCenterOpen && (root.bar.controlCenterPage === "launcher" || root.bar.controlCenterPage === "todo" || root.bar.controlCenterPage === "clipboard" || root.bar.controlCenterPage === "keybinds")
         onClosed: root.bar.closeControlCenter()
         onVisibleChanged: {
             if (visible && root.bar.controlCenterPage === "launcher") {
@@ -998,7 +1013,10 @@ Item {
                 Qt.callLater(function() { launcherSearch.forceActiveFocus(); });
             }
             if (visible && root.bar.controlCenterPage === "todo") Qt.callLater(function() { todoInputField.forceActiveFocus(); });
-            if (visible && root.bar.controlCenterPage === "clipboard") root.refreshClipboard();
+            if (visible && root.bar.controlCenterPage === "clipboard") {
+                root.refreshClipboard();
+                Qt.callLater(function() { clipboardSearch.forceActiveFocus(); });
+            }
             if (visible && root.bar.controlCenterPage === "windows") root.refreshWindows();
             if (visible && root.bar.controlCenterPage === "scratch") root.refreshWindows();
             if (visible && root.bar.controlCenterPage === "capture") root.refreshCaptureTools();
@@ -1130,7 +1148,10 @@ Item {
                                         Qt.callLater(function() { launcherSearch.forceActiveFocus(); });
                                     }
                                     if (modelData.key === "todo") Qt.callLater(function() { todoInputField.forceActiveFocus(); });
-                                    if (modelData.key === "clipboard") root.refreshClipboard();
+                                    if (modelData.key === "clipboard") {
+                                        root.refreshClipboard();
+                                        Qt.callLater(function() { clipboardSearch.forceActiveFocus(); });
+                                    }
                                     if (modelData.key === "windows") root.refreshWindows();
                                     if (modelData.key === "scratch") root.refreshWindows();
                                     if (modelData.key === "capture") root.refreshCaptureTools();
@@ -2282,10 +2303,60 @@ Item {
                             }
                         }
 
+                        Rectangle {
+                            width: parent.width
+                            height: 38
+                            radius: 17
+                            color: root.bar.pillColor
+                            border.color: clipboardSearch.activeFocus ? root.bar.networkTextColor : "transparent"
+                            border.width: clipboardSearch.activeFocus ? 1 : 0
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 10
+                                spacing: 8
+
+                                Text {
+                                    text: ""
+                                    color: root.bar.mutedTextColor
+                                    font.family: root.bar.iconFont
+                                    font.pixelSize: 13
+                                    Layout.alignment: Qt.AlignVCenter
+                                }
+
+                                TextInput {
+                                    id: clipboardSearch
+                                    Layout.fillWidth: true
+                                    Layout.alignment: Qt.AlignVCenter
+                                    text: root.clipboardQuery
+                                    color: root.bar.textColor
+                                    selectionColor: root.bar.activePillColor
+                                    selectedTextColor: root.bar.textColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 12
+                                    clip: true
+                                    onTextChanged: root.clipboardQuery = text
+                                    Keys.onEscapePressed: {
+                                        if (root.clipboardQuery.length > 0) root.clipboardQuery = "";
+                                        else root.bar.closeControlCenter();
+                                    }
+                                }
+
+                                Text {
+                                    text: root.filteredClipboardItems().length + "/" + root.clipboardItems.length
+                                    color: root.bar.mutedTextColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 10
+                                    Layout.alignment: Qt.AlignVCenter
+                                }
+                            }
+                        }
+
                         Text {
                             width: parent.width
-                            visible: root.clipboardItems.length === 0
-                            text: root.clipboardStatus === "Ready" ? "No clipboard history" : root.clipboardStatus
+                            visible: root.filteredClipboardItems().length === 0
+                            text: root.clipboardItems.length === 0 ? (root.clipboardStatus === "Ready" ? "No clipboard history" : root.clipboardStatus) : "No matching clipboard items"
                             color: root.bar.mutedTextColor
                             font.family: root.bar.barFont
                             font.pixelSize: 13
@@ -2298,7 +2369,7 @@ Item {
                             contentWidth: width
                             contentHeight: clipboardList.implicitHeight
                             clip: true
-                            visible: root.clipboardItems.length > 0
+                            visible: root.filteredClipboardItems().length > 0
 
                             Column {
                                 id: clipboardList
@@ -2306,7 +2377,7 @@ Item {
                                 spacing: 8
 
                                 Repeater {
-                                    model: root.clipboardItems
+                                    model: root.filteredClipboardItems()
 
                                     Rectangle {
                                         width: clipboardList.width
