@@ -634,6 +634,9 @@ Item {
         if (rawQuery.length > 1 && rawQuery[0] === "?") {
             return [{ type: "command", icon: "󰖟", name: "Search web", sub: rawQuery.slice(1).trim(), action: "webQuery", commandText: rawQuery.slice(1).trim() }];
         }
+        if (rawQuery.length > 1 && rawQuery[0] === "@") {
+            return [{ type: "command", icon: "󰖟", name: "Open URL", sub: rawQuery.slice(1).trim(), action: "openUrl", commandText: rawQuery.slice(1).trim() }];
+        }
         if (rawQuery.length > 1 && rawQuery[0] === ">") {
             return [{ type: "command", icon: "󰘳", name: "Hyprland dispatch", sub: rawQuery.slice(1).trim(), action: "hyprDispatch", commandText: rawQuery.slice(1).trim() }];
         }
@@ -863,6 +866,15 @@ Item {
             launcherStatus = "Searching";
             launcherCommandProc.command = ["sh", "-c", "setsid -f xdg-open " + shellQuote("https://duckduckgo.com/?q=" + encodeURIComponent(text)) + " >/tmp/quickshell-launcher.log 2>&1"];
             root.bar.showToast("󰖟", "Web Search", text, "info", -1, 1300);
+            launcherCommandProc.running = true;
+            return;
+        }
+
+        if (item.action === "openUrl") {
+            launcherStatus = "Opening URL";
+            var url = text.match(/^https?:\/\//) ? text : "https://" + text;
+            launcherCommandProc.command = ["sh", "-c", "setsid -f xdg-open " + shellQuote(url) + " >/tmp/quickshell-launcher.log 2>&1"];
+            root.bar.showToast("󰖟", "Open URL", url, "info", -1, 1300);
             launcherCommandProc.running = true;
             return;
         }
