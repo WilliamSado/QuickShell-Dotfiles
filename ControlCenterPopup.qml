@@ -12,6 +12,8 @@ Item {
     property string clipboardStatus: "Ready"
     property string captureStatus: "Ready"
     property bool recording: false
+    property string recordingPath: ""
+    property var captureTools: ({})
     property var windowItems: []
     property string windowStatus: "Ready"
     property var launcherApps: []
@@ -100,8 +102,22 @@ Item {
         return base + "/" + kind + "-" + stamp + "." + extension;
     }
 
-    function runCapture(command, status) {
+    function refreshCaptureTools() {
+        captureToolsProc.running = true;
+    }
+
+    function captureActionEnabled(action) {
+        if (action === "fullscreen") return !!captureTools.grim && !!captureTools.wlcopy;
+        if (action === "region") return !!captureTools.grim && !!captureTools.slurp && !!captureTools.wlcopy;
+        if (action === "window") return !!captureTools.grim && !!captureTools.hyprctl && !!captureTools.jq && !!captureTools.wlcopy;
+        if (action === "record") return recording || (!!captureTools.wfrecorder && !!captureTools.slurp);
+        if (action === "color") return !!captureTools.hyprpicker;
+        return true;
+    }
+
+    function runCapture(command, status, path) {
         captureStatus = status || "Running";
+        if (path) root.bar.captureLastPath = path;
         root.bar.closeControlCenter();
         captureProc.command = ["sh", "-c", "sleep 0.15; " + command];
         captureProc.running = true;
@@ -109,24 +125,43 @@ Item {
 
     function captureFullscreen() {
         var path = capturePath("screenshot", "png");
-        runCapture("mkdir -p " + shellQuote("/home/sado/Pictures/Screenshots") + " && grim " + shellQuote(path) + " && wl-copy < " + shellQuote(path), "Fullscreen saved");
+        if (!captureActionEnabled("fullscreen")) {
+            captureStatus = "Missing tool";
+            return;
+        }
+        runCapture("mkdir -p " + shellQuote("/home/sado/Pictures/Screenshots") + " && grim " + shellQuote(path) + " && wl-copy < " + shellQuote(path), "Fullscreen saved", path);
     }
 
     function captureRegion() {
         var path = capturePath("region", "png");
-        runCapture("mkdir -p " + shellQuote("/home/sado/Pictures/Screenshots") + " && area=$(slurp) && [ -n \"$area\" ] && grim -g \"$area\" " + shellQuote(path) + " && wl-copy < " + shellQuote(path), "Region saved");
+        if (!captureActionEnabled("region")) {
+            captureStatus = "Missing tool";
+            return;
+        }
+        runCapture("mkdir -p " + shellQuote("/home/sado/Pictures/Screenshots") + " && area=$(slurp) && [ -n \"$area\" ] && grim -g \"$area\" " + shellQuote(path) + " && wl-copy < " + shellQuote(path), "Region saved", path);
     }
 
     function captureWindow() {
         var path = capturePath("window", "png");
-        runCapture("mkdir -p " + shellQuote("/home/sado/Pictures/Screenshots") + " && geom=$(hyprctl activewindow -j | jq -r '\"\\(.at[0]),\\(.at[1]) \\(.size[0])x\\(.size[1])\"') && [ -n \"$geom\" ] && grim -g \"$geom\" " + shellQuote(path) + " && wl-copy < " + shellQuote(path), "Window saved");
+        if (!captureActionEnabled("window")) {
+            captureStatus = "Missing tool";
+            return;
+        }
+        runCapture("mkdir -p " + shellQuote("/home/sado/Pictures/Screenshots") + " && geom=$(hyprctl activewindow -j | jq -r '\"\\(.at[0]),\\(.at[1]) \\(.size[0])x\\(.size[1])\"') && [ -n \"$geom\" ] && grim -g \"$geom\" " + shellQuote(path) + " && wl-copy < " + shellQuote(path), "Window saved", path);
     }
 
     function toggleRecording() {
         if (recording) {
             recordStopProc.running = true;
             recording = false;
+            root.bar.captureLastPath = recordingPath;
+            root.bar.persistSettings();
             captureStatus = "Recording stopped";
+            return;
+        }
+
+        if (!captureActionEnabled("record")) {
+            captureStatus = "Missing tool";
             return;
         }
 
@@ -135,11 +170,29 @@ Item {
         recordProc.command = ["sh", "-c", "sleep 0.15; mkdir -p " + shellQuote("/home/sado/Videos/Recordings") + " && area=$(slurp) && [ -n \"$area\" ] && wf-recorder -g \"$area\" -f " + shellQuote(path)];
         recordProc.running = true;
         recording = true;
+        recordingPath = path;
         captureStatus = "Recording";
     }
 
     function pickColor() {
-        runCapture("hyprpicker -a", "Color copied");
+        if (!captureActionEnabled("color")) {
+            captureStatus = "Missing tool";
+            return;
+        }
+        runCapture("hyprpicker -a", "Color copied", "");
+    }
+
+    function openCaptureDirectory() {
+        if (!root.bar.captureLastPath || root.bar.captureLastPath.length === 0) return;
+        captureUtilityProc.command = ["sh", "-c", "xdg-open " + shellQuote(root.bar.captureLastPath.replace(/\/[^\/]+$/, ""))];
+        captureUtilityProc.running = true;
+    }
+
+    function copyCapturePath() {
+        if (!root.bar.captureLastPath || root.bar.captureLastPath.length === 0) return;
+        captureUtilityProc.command = ["sh", "-c", "printf '%s' " + shellQuote(root.bar.captureLastPath) + " | wl-copy"];
+        captureUtilityProc.running = true;
+        captureStatus = "Path copied";
     }
 
     function refreshWindows() {
@@ -442,6 +495,7 @@ Item {
             }
             if (visible && root.bar.controlCenterPage === "clipboard") root.refreshClipboard();
             if (visible && root.bar.controlCenterPage === "windows") root.refreshWindows();
+            if (visible && root.bar.controlCenterPage === "capture") root.refreshCaptureTools();
         }
 
         Rectangle {
@@ -563,6 +617,7 @@ Item {
                                     }
                                     if (modelData.key === "clipboard") root.refreshClipboard();
                                     if (modelData.key === "windows") root.refreshWindows();
+                                    if (modelData.key === "capture") root.refreshCaptureTools();
                                 }
                             }
                         }
@@ -975,10 +1030,13 @@ Item {
                                 ]
 
                                 Rectangle {
+                                    property bool actionEnabled: root.captureActionEnabled(modelData.action)
+
                                     width: (parent.width - 10) / 2
                                     height: 62
                                     radius: 16
-                                    color: modelData.active ? root.bar.activePillColor : captureButtonMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+                                    opacity: actionEnabled ? 1 : 0.45
+                                    color: modelData.active ? root.bar.activePillColor : captureButtonMouse.containsMouse && actionEnabled ? root.bar.activePillColor : root.bar.pillColor
 
                                     RowLayout {
                                         anchors.fill: parent
@@ -1009,7 +1067,7 @@ Item {
 
                                             Text {
                                                 width: parent.width
-                                                text: modelData.sub
+                                                text: actionEnabled ? modelData.sub : "missing tool"
                                                 color: root.bar.mutedTextColor
                                                 font.family: root.bar.barFont
                                                 font.pixelSize: 11
@@ -1023,12 +1081,106 @@ Item {
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         onClicked: {
+                                            if (!parent.actionEnabled) {
+                                                root.captureStatus = "Missing tool";
+                                                return;
+                                            }
                                             if (modelData.action === "fullscreen") root.captureFullscreen();
                                             else if (modelData.action === "region") root.captureRegion();
                                             else if (modelData.action === "window") root.captureWindow();
                                             else if (modelData.action === "record") root.toggleRecording();
                                             else if (modelData.action === "color") root.pickColor();
                                         }
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            width: parent.width
+                            height: 56
+                            radius: 16
+                            color: root.bar.pillColor
+                            visible: root.bar.captureLastPath.length > 0
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.margins: 12
+                                spacing: 10
+
+                                Text {
+                                    text: "󰉋"
+                                    color: root.bar.networkTextColor
+                                    font.family: root.bar.iconFont
+                                    font.pixelSize: 15
+                                    Layout.alignment: Qt.AlignVCenter
+                                }
+
+                                Column {
+                                    Layout.fillWidth: true
+                                    Layout.alignment: Qt.AlignVCenter
+                                    spacing: 2
+
+                                    Text {
+                                        width: parent.width
+                                        text: root.bar.captureLastPath.replace(/^.*\//, "")
+                                        color: root.bar.textColor
+                                        font.family: root.bar.barFont
+                                        font.pixelSize: 12
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Text {
+                                        width: parent.width
+                                        text: root.bar.captureLastPath
+                                        color: root.bar.mutedTextColor
+                                        font.family: root.bar.barFont
+                                        font.pixelSize: 10
+                                        elide: Text.ElideMiddle
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.preferredWidth: 30
+                                    Layout.preferredHeight: 30
+                                    radius: 15
+                                    color: openCaptureDirMouse.containsMouse ? root.bar.activePillColor : root.bar.sectionPillColor
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: ""
+                                        color: root.bar.textColor
+                                        font.family: root.bar.iconFont
+                                        font.pixelSize: 12
+                                    }
+
+                                    MouseArea {
+                                        id: openCaptureDirMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        onClicked: root.openCaptureDirectory()
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.preferredWidth: 30
+                                    Layout.preferredHeight: 30
+                                    radius: 15
+                                    color: copyCapturePathMouse.containsMouse ? root.bar.activePillColor : root.bar.sectionPillColor
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: ""
+                                        color: root.bar.textColor
+                                        font.family: root.bar.iconFont
+                                        font.pixelSize: 12
+                                    }
+
+                                    MouseArea {
+                                        id: copyCapturePathMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        onClicked: root.copyCapturePath()
                                     }
                                 }
                             }
@@ -1309,7 +1461,34 @@ Item {
         id: captureProc
         command: ["sh", "-c", "true"]
         onExited: function(exitCode) {
-            if (exitCode !== 0) root.captureStatus = "Capture failed";
+            if (exitCode !== 0) {
+                root.captureStatus = "Capture failed";
+            } else if (root.bar.captureLastPath.length > 0) {
+                root.bar.persistSettings();
+            }
+        }
+    }
+
+    Process {
+        id: captureUtilityProc
+        command: ["sh", "-c", "true"]
+    }
+
+    Process {
+        id: captureToolsProc
+        command: ["sh", "-c", "for tool in grim slurp wf-recorder hyprpicker wl-copy hyprctl jq; do command -v \"$tool\" >/dev/null 2>&1 && printf '%s=1\\n' \"$tool\" || printf '%s=0\\n' \"$tool\"; done"]
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var tools = ({});
+                var lines = String(text || "").split("\n");
+                for (var i = 0; i < lines.length; i++) {
+                    var parts = lines[i].split("=");
+                    if (parts.length === 2) tools[parts[0].replace("-", "")] = parts[1].trim() === "1";
+                }
+                root.captureTools = tools;
+                root.captureStatus = "Ready";
+            }
         }
     }
 
@@ -1318,7 +1497,12 @@ Item {
         command: ["sh", "-c", "true"]
         onExited: function(exitCode) {
             root.recording = false;
-            if (exitCode !== 0 && root.captureStatus === "Recording") root.captureStatus = "Recording failed";
+            if (exitCode !== 0 && root.captureStatus === "Recording") {
+                root.captureStatus = "Recording failed";
+            } else if (root.recordingPath.length > 0) {
+                root.bar.captureLastPath = root.recordingPath;
+                root.bar.persistSettings();
+            }
         }
     }
 
