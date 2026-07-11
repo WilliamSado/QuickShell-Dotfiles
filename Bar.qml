@@ -124,6 +124,10 @@ PanelWindow {
     property string powerProfileStatus: "Ready"
     property int sourcePercent: 0
     property var audioInputDevices: []
+    property var appAudioStreams: []
+    property string appAudioStatus: "Ready"
+    property bool appAudioExpanded: false
+    property bool appAudioScanInStreams: false
     property string performanceText: "--"
     property string temperatureText: "--"
     property string processText: "--"
@@ -1732,6 +1736,63 @@ PanelWindow {
         audioInputsProc.running = true;
     }
 
+    function refreshAppAudioStreams() {
+        appAudioStatus = "Loading";
+        appAudioStreams = [];
+        appAudioScanInStreams = false;
+        appAudioProc.running = true;
+    }
+
+    function parseAppAudioLine(line) {
+        var clean = line.trim();
+        if (clean.match(/^Streams:/)) {
+            appAudioScanInStreams = true;
+            return;
+        }
+        if (appAudioScanInStreams && clean.match(/^(Video|Settings):/)) {
+            appAudioScanInStreams = false;
+            return;
+        }
+        if (!appAudioScanInStreams) return;
+
+        var normalized = clean.replace(/^[*│├└─\s]+/, "");
+        var match = normalized.match(/^(\d+)\.\s+(.+?)(?:\s+\[vol:\s*([\d.]+)([^\]]*)\])?$/);
+        if (!match) return;
+
+        var percent = match[3] ? Math.round(parseFloat(match[3]) * 100) : 100;
+        if (isNaN(percent)) percent = 100;
+        var name = match[2].replace(/\s+\*$/, "").trim();
+        var streams = appAudioStreams.slice();
+        streams.push({
+            id: match[1],
+            name: name.length > 0 ? name : "Audio stream",
+            percent: Math.max(0, Math.min(100, percent)),
+            muted: clean.indexOf("MUTED") !== -1
+        });
+        appAudioStreams = streams;
+        appAudioStatus = streams.length + " streams";
+    }
+
+    function setAppAudioVolume(stream, percent) {
+        if (!stream || stream.id === undefined) return;
+        var clamped = Math.max(0, Math.min(100, Math.round(percent)));
+        showToast("󰝚", stream.name || "App audio", clamped + "%", "info", clamped / 100, 900);
+        appAudioSetProc.command = ["wpctl", "set-volume", String(stream.id), (clamped / 100).toFixed(2)];
+        appAudioSetProc.running = true;
+    }
+
+    function adjustAppAudioVolume(stream, delta) {
+        if (!stream) return;
+        setAppAudioVolume(stream, (stream.percent || 0) + delta);
+    }
+
+    function toggleAppAudioMute(stream) {
+        if (!stream || stream.id === undefined) return;
+        showToast(stream.muted ? "󰝝" : "󰝟", stream.name || "App audio", stream.muted ? "Unmuting" : "Muting", "info", -1, 900);
+        appAudioMuteProc.command = ["wpctl", "set-mute", String(stream.id), "toggle"];
+        appAudioMuteProc.running = true;
+    }
+
     function parseAudioOutputLine(line) {
         var clean = line.replace(/[│├└─]/g, " ").trim();
 
@@ -1853,6 +1914,36 @@ PanelWindow {
         id: audioInputSetProc
         command: ["sh", "-c", "echo 0"]
         onExited: sourceProc.running = true
+    }
+
+    Process {
+        id: appAudioProc
+        command: ["wpctl", "status"]
+        stdout: SplitParser {
+            onRead: function(data) {
+                parseAppAudioLine(data);
+            }
+        }
+        onExited: function(exitCode) {
+            if (exitCode !== 0) {
+                appAudioStreams = [];
+                appAudioStatus = "wpctl unavailable";
+            } else if (appAudioStreams.length === 0) {
+                appAudioStatus = "No app audio";
+            }
+        }
+    }
+
+    Process {
+        id: appAudioSetProc
+        command: ["sh", "-c", "true"]
+        onExited: refreshAppAudioStreams()
+    }
+
+    Process {
+        id: appAudioMuteProc
+        command: ["sh", "-c", "true"]
+        onExited: refreshAppAudioStreams()
     }
 
     Process {
@@ -3124,6 +3215,9 @@ PanelWindow {
                 volumePopupOpen = false;
                 audioOutputsExpanded = false;
                 audioInputsExpanded = false;
+                appAudioExpanded = false;
+            } else {
+                refreshAppAudioStreams();
             }
         }
 
@@ -3510,6 +3604,175 @@ PanelWindow {
                             anchors.fill: parent
                             hoverEnabled: true
                             onClicked: setDefaultAudioSource(modelData)
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 34
+                    radius: 12
+                    color: appAudioHeaderMouse.containsMouse ? "#44282828" : "transparent"
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        spacing: 8
+
+                        Text {
+                            text: appAudioExpanded ? "" : ""
+                            color: audioTextColor
+                            font.family: iconFont
+                            font.pixelSize: 14
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        Text {
+                            text: "App mixer"
+                            color: mutedTextColor
+                            font.family: barFont
+                            font.pixelSize: 13
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        Text {
+                            text: appAudioStatus
+                            color: mutedTextColor
+                            font.family: barFont
+                            font.pixelSize: 11
+                            Layout.alignment: Qt.AlignVCenter
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    MouseArea {
+                        id: appAudioHeaderMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: {
+                            appAudioExpanded = !appAudioExpanded;
+                            if (appAudioExpanded) refreshAppAudioStreams();
+                        }
+                    }
+                }
+
+                Text {
+                    width: parent.width
+                    visible: appAudioExpanded && appAudioStreams.length === 0
+                    text: appAudioStatus
+                    color: mutedTextColor
+                    font.family: barFont
+                    font.pixelSize: 12
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                Repeater {
+                    model: appAudioExpanded ? appAudioStreams : []
+
+                    Rectangle {
+                        id: appAudioCard
+                        property var streamData: modelData
+
+                        width: volumePopupColumn.width
+                        height: 54
+                        radius: 12
+                        color: appAudioMouse.containsMouse ? "#44282828" : "transparent"
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 10
+                            anchors.rightMargin: 10
+                            spacing: 8
+
+                            Text {
+                                text: modelData.muted ? "󰝟" : "󰝚"
+                                color: modelData.muted ? mutedTextColor : audioTextColor
+                                font.family: iconFont
+                                font.pixelSize: 15
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Column {
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                                spacing: 2
+
+                                Text {
+                                    width: parent.width
+                                    text: modelData.name
+                                    color: textColor
+                                    font.family: barFont
+                                    font.pixelSize: 12
+                                    elide: Text.ElideRight
+                                }
+
+                                Rectangle {
+                                    width: parent.width
+                                    height: 6
+                                    radius: 3
+                                    color: "#24ffffff"
+
+                                    Rectangle {
+                                        width: parent.width * Math.min(modelData.percent, 100) / 100
+                                        height: parent.height
+                                        radius: parent.radius
+                                        color: modelData.muted ? mutedTextColor : audioTextColor
+                                    }
+                                }
+                            }
+
+                            Text {
+                                text: modelData.percent + "%"
+                                color: audioTextColor
+                                font.family: barFont
+                                font.pixelSize: 11
+                                Layout.preferredWidth: 34
+                                horizontalAlignment: Text.AlignRight
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Repeater {
+                                model: [
+                                    { label: "-", action: "down" },
+                                    { label: "+", action: "up" },
+                                    { label: modelData.muted ? "on" : "off", action: "mute" }
+                                ]
+
+                                Rectangle {
+                                    Layout.preferredWidth: modelData.action === "mute" ? 34 : 24
+                                    Layout.preferredHeight: 26
+                                    radius: 13
+                                    color: appAudioActionMouse.containsMouse ? activePillColor : pillColor
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: modelData.label
+                                        color: audioTextColor
+                                        font.family: barFont
+                                        font.pixelSize: 11
+                                    }
+
+                                    MouseArea {
+                                        id: appAudioActionMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        onClicked: {
+                                            if (modelData.action === "down") adjustAppAudioVolume(appAudioCard.streamData, -5);
+                                            else if (modelData.action === "up") adjustAppAudioVolume(appAudioCard.streamData, 5);
+                                            else if (modelData.action === "mute") toggleAppAudioMute(appAudioCard.streamData);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            id: appAudioMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            acceptedButtons: Qt.NoButton
                         }
                     }
                 }
