@@ -1223,6 +1223,11 @@ PanelWindow {
         setMediaHiddenInFocus(!mediaHiddenInFocus);
     }
 
+    function toggleFocusDimNotifications() {
+        focusDimNotifications = !focusDimNotifications;
+        persistSettings();
+    }
+
     function addNotification(notification) {
         if (!notification || notificationsDnd) return;
         notification.tracked = true;
@@ -2117,6 +2122,7 @@ PanelWindow {
                 Layout.alignment: Qt.AlignVCenter
                 radius: pillRadius
                 color: notificationCenterOpen ? activePillColor : pillColor
+                opacity: focusModeEnabled && focusDimNotifications ? 0.52 : 1
 
                 Row {
                     id: notifRow

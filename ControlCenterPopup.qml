@@ -15,6 +15,8 @@ Item {
     property string recordingPath: ""
     property var captureTools: ({})
     property var windowItems: []
+    property string windowFilter: "all"
+    property int activeWorkspaceId: -1
     property string windowStatus: "Ready"
     property var launcherApps: []
     property string launcherQuery: ""
@@ -69,7 +71,7 @@ Item {
         if (root.bar.controlCenterPage === "clipboard") return 310;
         if (root.bar.controlCenterPage === "capture") return 292;
         if (root.bar.controlCenterPage === "windows") return 350;
-        if (root.bar.controlCenterPage === "focus") return 210;
+        if (root.bar.controlCenterPage === "focus") return 260;
         return 170;
     }
 
@@ -197,6 +199,7 @@ Item {
 
     function refreshWindows() {
         windowStatus = "Loading";
+        activeWorkspaceProc.running = true;
         windowListProc.running = true;
     }
 
@@ -204,6 +207,9 @@ Item {
         try {
             var clients = JSON.parse(text || "[]");
             clients.sort(function(a, b) {
+                var af = a.focusHistoryID !== undefined ? a.focusHistoryID : 9999;
+                var bf = b.focusHistoryID !== undefined ? b.focusHistoryID : 9999;
+                if (af !== bf) return af - bf;
                 var aw = a.workspace && a.workspace.id !== undefined ? a.workspace.id : 999;
                 var bw = b.workspace && b.workspace.id !== undefined ? b.workspace.id : 999;
                 if (aw !== bw) return aw - bw;
@@ -215,6 +221,13 @@ Item {
             windowItems = [];
             windowStatus = "Could not parse windows";
         }
+    }
+
+    function visibleWindowItems() {
+        if (windowFilter !== "current" || activeWorkspaceId < 0) return windowItems;
+        return windowItems.filter(function(window) {
+            return window && window.workspace && window.workspace.id === activeWorkspaceId;
+        });
     }
 
     function windowName(window) {
@@ -825,7 +838,7 @@ Item {
                             }
 
                             Text {
-                                text: root.windowStatus
+                                text: root.windowFilter === "current" ? root.visibleWindowItems().length + " current" : root.windowStatus
                                 color: root.bar.mutedTextColor
                                 font.family: root.bar.barFont
                                 font.pixelSize: 12
@@ -859,7 +872,7 @@ Item {
 
                         Text {
                             width: parent.width
-                            visible: root.windowItems.length === 0
+                            visible: root.visibleWindowItems().length === 0
                             text: root.windowStatus
                             color: root.bar.mutedTextColor
                             font.family: root.bar.barFont
@@ -867,13 +880,46 @@ Item {
                             horizontalAlignment: Text.AlignHCenter
                         }
 
+                        RowLayout {
+                            width: parent.width
+                            height: 34
+                            spacing: 8
+
+                            Repeater {
+                                model: [
+                                    { key: "all", label: "All" },
+                                    { key: "current", label: "Current" }
+                                ]
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 34
+                                    radius: 17
+                                    color: root.windowFilter === modelData.key ? root.bar.activePillColor : root.bar.pillColor
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: modelData.label
+                                        color: root.windowFilter === modelData.key ? root.bar.textColor : root.bar.mutedTextColor
+                                        font.family: root.bar.barFont
+                                        font.pixelSize: 12
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: root.windowFilter = modelData.key
+                                    }
+                                }
+                            }
+                        }
+
                         Flickable {
                             width: parent.width
-                            height: 276
+                            height: 232
                             contentWidth: width
                             contentHeight: windowList.implicitHeight
                             clip: true
-                            visible: root.windowItems.length > 0
+                            visible: root.visibleWindowItems().length > 0
 
                             Column {
                                 id: windowList
@@ -881,7 +927,7 @@ Item {
                                 spacing: 8
 
                                 Repeater {
-                                    model: root.windowItems
+                                    model: root.visibleWindowItems()
 
                                     Rectangle {
                                         id: windowCard
@@ -1414,6 +1460,41 @@ Item {
                                 }
                             }
                         }
+
+                        RowLayout {
+                            width: parent.width
+                            height: 44
+                            spacing: 10
+
+                            Text {
+                                text: "降低通知强调度"
+                                color: root.bar.textColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 13
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 72
+                                Layout.preferredHeight: 32
+                                radius: 16
+                                color: root.bar.focusDimNotifications ? root.bar.activePillColor : root.bar.pillColor
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: root.bar.focusDimNotifications ? "On" : "Off"
+                                    color: root.bar.textColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 12
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: root.bar.toggleFocusDimNotifications()
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1534,6 +1615,22 @@ Item {
         onExited: function(exitCode) {
             if (exitCode !== 0) root.windowStatus = "Window action failed";
             refreshWindowsTimer.restart();
+        }
+    }
+
+    Process {
+        id: activeWorkspaceProc
+        command: ["hyprctl", "activeworkspace", "-j"]
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                try {
+                    var workspace = JSON.parse(text || "{}");
+                    root.activeWorkspaceId = workspace.id !== undefined ? workspace.id : -1;
+                } catch (error) {
+                    root.activeWorkspaceId = -1;
+                }
+            }
         }
     }
 
