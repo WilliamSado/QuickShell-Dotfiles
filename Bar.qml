@@ -112,6 +112,10 @@ PanelWindow {
     property string wallpaperDirectoryInput: "/home/sado/Pictures/wallpapers"
     property var wallpaperFiles: []
     property string wallpaperBrowserStatus: "Not scanned"
+    property bool wallpaperRotationEnabled: false
+    property int wallpaperRotationMinutes: 30
+    property bool wallpaperRotationRandom: true
+    property int wallpaperRotationIndex: 0
     property string wifiPassword: ""
     property string wifiPasswordSsid: ""
     property var wifiPasswordNetwork: null
@@ -1065,6 +1069,9 @@ PanelWindow {
         if (settingsStore.wallpaperPath.length > 0) hyprWallpaperPath = settingsStore.wallpaperPath;
         wallpaperDirectories = settingsStore.wallpaperDirectories;
         wallpaperDirectoryInput = wallpaperDirectories.length > 0 ? wallpaperDirectories[0] : "/home/sado/Pictures/wallpapers";
+        wallpaperRotationEnabled = settingsStore.wallpaperRotationEnabled;
+        wallpaperRotationMinutes = Math.max(1, settingsStore.wallpaperRotationMinutes);
+        wallpaperRotationRandom = settingsStore.wallpaperRotationRandom;
         popupAnimationMs = Math.max(settingsStore.popupAnimationMs, 190);
         popupAnimationOffset = Math.max(settingsStore.popupAnimationOffset, 18);
         hyprBlurEnabled = settingsStore.hyprBlurEnabled;
@@ -1099,6 +1106,9 @@ PanelWindow {
         settingsStore.themeMode = themeMode;
         settingsStore.wallpaperPath = hyprWallpaperPath;
         settingsStore.wallpaperDirectories = wallpaperDirectories;
+        settingsStore.wallpaperRotationEnabled = wallpaperRotationEnabled;
+        settingsStore.wallpaperRotationMinutes = wallpaperRotationMinutes;
+        settingsStore.wallpaperRotationRandom = wallpaperRotationRandom;
         settingsStore.popupAnimationMs = popupAnimationMs;
         settingsStore.popupAnimationOffset = popupAnimationOffset;
         settingsStore.hyprBlurEnabled = hyprBlurEnabled;
@@ -1162,6 +1172,52 @@ PanelWindow {
     function selectWallpaper(path) {
         hyprWallpaperPath = path;
         applyWallpaper();
+    }
+
+    function rotateWallpaperNow() {
+        if (wallpaperFiles.length === 0) {
+            refreshWallpapers();
+            wallpaperBrowserStatus = "No wallpapers to rotate";
+            showToast("󰸉", "Wallpaper Rotate", wallpaperBrowserStatus, "warning", -1, 1600);
+            return;
+        }
+
+        var nextIndex = 0;
+        if (wallpaperRotationRandom && wallpaperFiles.length > 1) {
+            nextIndex = Math.floor(Math.random() * wallpaperFiles.length);
+            if (wallpaperFiles[nextIndex] === hyprWallpaperPath) nextIndex = (nextIndex + 1) % wallpaperFiles.length;
+        } else {
+            var currentIndex = wallpaperFiles.indexOf(hyprWallpaperPath);
+            nextIndex = currentIndex >= 0 ? (currentIndex + 1) % wallpaperFiles.length : wallpaperRotationIndex % wallpaperFiles.length;
+        }
+
+        wallpaperRotationIndex = nextIndex + 1;
+        selectWallpaper(wallpaperFiles[nextIndex]);
+        showToast("󰸉", "Wallpaper Rotate", wallpaperFiles[nextIndex].replace(/^.*\//, ""), "success", -1, 1600);
+    }
+
+    function setWallpaperRotationEnabled(enabled) {
+        wallpaperRotationEnabled = enabled;
+        persistSettings();
+        if (enabled) {
+            if (wallpaperFiles.length === 0) refreshWallpapers();
+            wallpaperRotationTimer.restart();
+        } else {
+            wallpaperRotationTimer.stop();
+        }
+        showToast("󰸉", "Wallpaper Rotate", enabled ? "Enabled" : "Disabled", enabled ? "success" : "info", -1, 1400);
+    }
+
+    function toggleWallpaperRotationRandom() {
+        wallpaperRotationRandom = !wallpaperRotationRandom;
+        persistSettings();
+        showToast("󰸉", "Wallpaper Rotate", wallpaperRotationRandom ? "Random" : "Sequential", "info", -1, 1200);
+    }
+
+    function adjustWallpaperRotationMinutes(delta) {
+        wallpaperRotationMinutes = Math.max(1, Math.min(240, wallpaperRotationMinutes + delta));
+        persistSettings();
+        if (wallpaperRotationEnabled) wallpaperRotationTimer.restart();
     }
 
     function setPowerProfile(profile) {
@@ -1825,6 +1881,7 @@ PanelWindow {
                 }
                 wallpaperFiles = files;
                 wallpaperBrowserStatus = files.length > 0 ? files.length + " wallpapers" : "No wallpapers";
+                if (wallpaperRotationEnabled && files.length > 0) wallpaperRotationTimer.restart();
             }
         }
         onExited: function(exitCode) {
@@ -1978,6 +2035,14 @@ PanelWindow {
         repeat: true
         running: volumePopupOpen
         onTriggered: refreshAudioOutputs()
+    }
+
+    Timer {
+        id: wallpaperRotationTimer
+        interval: Math.max(1, wallpaperRotationMinutes) * 60000
+        repeat: true
+        running: wallpaperRotationEnabled && wallpaperFiles.length > 0
+        onTriggered: rotateWallpaperNow()
     }
 
     Timer {

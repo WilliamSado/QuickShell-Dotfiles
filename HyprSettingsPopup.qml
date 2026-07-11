@@ -360,6 +360,126 @@ Item {
                         spacing: 8
 
                         Rectangle {
+                            Layout.preferredWidth: 96
+                            Layout.preferredHeight: 34
+                            radius: 17
+                            color: rotateToggleMouse.containsMouse ? root.bar.activePillColor : root.bar.wallpaperRotationEnabled ? root.bar.activePillColor : root.bar.pillColor
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: root.bar.wallpaperRotationEnabled ? "Rotate on" : "Rotate off"
+                                color: root.bar.textColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 12
+                            }
+
+                            MouseArea {
+                                id: rotateToggleMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: root.bar.setWallpaperRotationEnabled(!root.bar.wallpaperRotationEnabled)
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.preferredWidth: 118
+                            Layout.preferredHeight: 34
+                            radius: 17
+                            color: root.bar.pillColor
+
+                            Row {
+                                anchors.centerIn: parent
+                                spacing: 12
+
+                                Text {
+                                    text: "-"
+                                    color: root.bar.networkTextColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 14
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        anchors.margins: -8
+                                        onClicked: root.bar.adjustWallpaperRotationMinutes(-5)
+                                    }
+                                }
+
+                                Text {
+                                    text: root.bar.wallpaperRotationMinutes + "m"
+                                    color: root.bar.textColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 12
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Text {
+                                    text: "+"
+                                    color: root.bar.networkTextColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 14
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        anchors.margins: -8
+                                        onClicked: root.bar.adjustWallpaperRotationMinutes(5)
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.preferredWidth: 104
+                            Layout.preferredHeight: 34
+                            radius: 17
+                            color: rotateModeMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: root.bar.wallpaperRotationRandom ? "Random" : "Sequence"
+                                color: root.bar.networkTextColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 12
+                            }
+
+                            MouseArea {
+                                id: rotateModeMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: root.bar.toggleWallpaperRotationRandom()
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 34
+                            radius: 17
+                            color: nextWallpaperMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "Next wallpaper"
+                                color: root.bar.networkTextColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 12
+                            }
+
+                            MouseArea {
+                                id: nextWallpaperMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: root.bar.rotateWallpaperNow()
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        width: parent.width
+                        height: 34
+                        spacing: 8
+
+                        Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 34
                             radius: 17

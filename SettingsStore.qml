@@ -10,6 +10,9 @@ Item {
     property string themeMode: "dark"
     property string wallpaperPath: ""
     property var wallpaperDirectories: ["/home/sado/Pictures/wallpapers"]
+    property bool wallpaperRotationEnabled: false
+    property int wallpaperRotationMinutes: 30
+    property bool wallpaperRotationRandom: true
     property int popupAnimationMs: 190
     property int popupAnimationOffset: 18
     property bool hyprBlurEnabled: true
@@ -54,6 +57,9 @@ Item {
             "themeMode": themeMode,
             "wallpaperPath": wallpaperPath,
             "wallpaperDirectories": wallpaperDirectories,
+            "wallpaperRotationEnabled": wallpaperRotationEnabled,
+            "wallpaperRotationMinutes": wallpaperRotationMinutes,
+            "wallpaperRotationRandom": wallpaperRotationRandom,
             "popupAnimationMs": popupAnimationMs,
             "popupAnimationOffset": popupAnimationOffset,
             "hyprBlurEnabled": hyprBlurEnabled,
@@ -100,6 +106,9 @@ Item {
                     if (data.themeMode !== undefined) root.themeMode = data.themeMode;
                     if (data.wallpaperPath !== undefined) root.wallpaperPath = data.wallpaperPath;
                     if (data.wallpaperDirectories !== undefined && data.wallpaperDirectories.length !== undefined) root.wallpaperDirectories = data.wallpaperDirectories;
+                    if (data.wallpaperRotationEnabled !== undefined) root.wallpaperRotationEnabled = data.wallpaperRotationEnabled;
+                    if (data.wallpaperRotationMinutes !== undefined) root.wallpaperRotationMinutes = data.wallpaperRotationMinutes;
+                    if (data.wallpaperRotationRandom !== undefined) root.wallpaperRotationRandom = data.wallpaperRotationRandom;
                     if (data.popupAnimationMs !== undefined) root.popupAnimationMs = data.popupAnimationMs;
                     if (data.popupAnimationOffset !== undefined) root.popupAnimationOffset = data.popupAnimationOffset;
                     if (data.hyprBlurEnabled !== undefined) root.hyprBlurEnabled = data.hyprBlurEnabled;
