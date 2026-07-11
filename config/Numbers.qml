@@ -64,4 +64,10 @@ QtObject {
     property real musicActiveOverlayOpacity: 0.28
     property int barFontSize: 16
     property int archIconFontSize: 14
+    property int toastWidth: 360
+    property int toastTopMargin: 66
+    property int toastRadius: 20
+    property int toastAnimationMs: 210
+    property int toastDurationMs: 1800
+    property int toastProgressHeight: 5
 }

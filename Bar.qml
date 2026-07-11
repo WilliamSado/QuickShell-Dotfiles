@@ -99,6 +99,9 @@ PanelWindow {
     property alias notificationCenterClosing: booleans.notificationCenterClosing
     property alias controlCenterOpen: booleans.controlCenterOpen
     property alias controlCenterClosing: booleans.controlCenterClosing
+    property alias toastEnabled: booleans.toastEnabled
+
+    signal toastRequested(string icon, string title, string message, string level, real progress, int durationMs)
 
     property string networkPopupMode: "active"
     property string controlCenterPage: "launcher"
@@ -687,6 +690,10 @@ PanelWindow {
         return "'" + String(value).replace(/'/g, "'\\''") + "'";
     }
 
+    function showToast(icon, title, message, level, progress, durationMs) {
+        toastRequested(icon || "󰋽", title || "", message || "", level || "info", progress === undefined ? -1 : progress, durationMs || 0);
+    }
+
     function updateNetworkIp() {
         var iface = activeNetworkInterface();
         if (iface.length === 0) {
@@ -701,6 +708,7 @@ PanelWindow {
     function runHyprCommand(command, statusText) {
         hyprCommandErrorText = "";
         hyprStatusText = statusText || "Running";
+        showToast("󰒓", hyprStatusText, "", "info", -1, 1200);
         hyprCommandProc.command = ["sh", "-c", command];
         hyprCommandProc.running = true;
     }
@@ -788,6 +796,7 @@ PanelWindow {
     function applyMonitorMode(mode) {
         if (!hyprMonitorName || hyprMonitorName === "Unknown") {
             hyprStatusText = "No active monitor";
+            showToast("󰍹", "Display", hyprStatusText, "warning", -1, 1800);
             return;
         }
 
@@ -803,11 +812,13 @@ PanelWindow {
     function applyMonitorRefresh(rate) {
         if (!hyprMonitorName || hyprMonitorName === "Unknown") {
             hyprStatusText = "No active monitor";
+            showToast("󰍹", "Display", hyprStatusText, "warning", -1, 1800);
             return;
         }
 
         if (!hyprMonitorResolution || hyprMonitorResolution === "preferred") {
             hyprStatusText = "No active resolution";
+            showToast("󰍹", "Display", hyprStatusText, "warning", -1, 1800);
             return;
         }
 
@@ -819,6 +830,7 @@ PanelWindow {
     function applyMonitorScale(scale) {
         if (!hyprMonitorName || hyprMonitorName === "Unknown") {
             hyprStatusText = "No active monitor";
+            showToast("󰍹", "Display", hyprStatusText, "warning", -1, 1800);
             return;
         }
 
@@ -830,6 +842,7 @@ PanelWindow {
         hyprWallpaperPath = cleanInputPath(hyprWallpaperPath);
         if (hyprWallpaperPath.length === 0) {
             hyprStatusText = "Wallpaper path is empty";
+            showToast("󰸉", "Wallpaper", hyprStatusText, "warning", -1, 1800);
             return;
         }
 
@@ -872,6 +885,7 @@ PanelWindow {
 
     function runQuickCommand(command, statusText) {
         quickSettingsStatusText = statusText || "Running";
+        showToast("󰒓", quickSettingsStatusText, "", "info", -1, 1200);
         quickCommandProc.command = ["sh", "-c", command];
         quickCommandProc.running = true;
     }
@@ -888,6 +902,7 @@ PanelWindow {
         var tone = themeTone(preset);
         applyThemeTone(tone);
         persistSettings();
+        showToast("󰔎", "Theme", currentThemeName + " · " + themeMode, "success", -1, 1600);
     }
 
     function applyThemeTone(tone) {
@@ -1018,10 +1033,12 @@ PanelWindow {
         var path = cleanInputPath(hyprWallpaperPath);
         if (path.length === 0) {
             dynamicThemeStatus = "No wallpaper";
+            showToast("󰸉", "Wallpaper Theme", dynamicThemeStatus, "warning", -1, 1600);
             return;
         }
 
         dynamicThemeStatus = "Reading wallpaper";
+        showToast("󰔎", "Wallpaper Theme", "Reading color", "info", -1, 1200);
         dynamicThemeProc.command = ["sh", "-c", "path=" + shellQuote(path) + "; if command -v magick >/dev/null 2>&1; then magick \"$path\" -resize '1x1!' -format '#%[hex:p{0,0}]' info:; elif command -v convert >/dev/null 2>&1; then convert \"$path\" -resize '1x1!' -format '#%[hex:p{0,0}]' info:; elif command -v matugen >/dev/null 2>&1; then matugen image \"$path\" --json hex 2>/dev/null | sed -n 's/.*\"primary\"[[:space:]]*:[[:space:]]*\"\\(#[0-9A-Fa-f]*\\)\".*/\\1/p' | head -n 1; else exit 127; fi"];
         dynamicThemeProc.running = true;
     }
@@ -1137,6 +1154,7 @@ PanelWindow {
     function setPowerProfile(profile) {
         powerProfile = profile;
         powerProfileStatus = "Applying";
+        showToast("󰓅", "Power Profile", profile, "info", -1, 1300);
         persistSettings();
         powerProfileProc.command = ["powerprofilesctl", "set", profile];
         powerProfileProc.running = true;
@@ -1187,6 +1205,7 @@ PanelWindow {
     function toggleDoNotDisturb() {
         notificationsDnd = !notificationsDnd;
         persistSettings();
+        showToast(notificationsDnd ? "󰂛" : "", "Notifications", notificationsDnd ? "DND enabled" : "DND disabled", notificationsDnd ? "warning" : "success", -1, 1400);
     }
 
     function setFocusMode(enabled) {
@@ -1201,6 +1220,7 @@ PanelWindow {
 
         focusModeEnabled = enabled;
         persistSettings();
+        showToast("󰒲", "Focus Mode", enabled ? "Enabled" : "Disabled", enabled ? "success" : "info", -1, 1500);
     }
 
     function toggleFocusMode() {
@@ -1217,6 +1237,7 @@ PanelWindow {
         }
 
         persistSettings();
+        showToast("󰝟", "Media Pill", enabled ? "Hidden in focus" : "Visible in focus", "info", -1, 1400);
     }
 
     function toggleMediaHiddenInFocus() {
@@ -1226,6 +1247,7 @@ PanelWindow {
     function toggleFocusDimNotifications() {
         focusDimNotifications = !focusDimNotifications;
         persistSettings();
+        showToast("", "Focus Notifications", focusDimNotifications ? "Dimmed" : "Normal", "info", -1, 1400);
     }
 
     function addNotification(notification) {
@@ -1247,11 +1269,23 @@ PanelWindow {
         var clamped = Math.max(1, Math.min(100, Math.round(percent)));
         quickBrightnessPercent = clamped;
         if (!settingsRestoring) persistSettings();
+        showToast("󰃠", "Brightness", clamped + "%", "info", clamped / 100, 1000);
         runQuickCommand("if command -v brightnessctl >/dev/null 2>&1 && ls /sys/class/backlight/* >/dev/null 2>&1; then brightnessctl set " + clamped + "%; elif command -v ddcutil >/dev/null 2>&1; then ddcutil setvcp 10 " + clamped + "; else exit 1; fi", "Brightness " + clamped + "%");
     }
 
     function toggleWifiRadio() {
+        showToast("", "WiFi", "Toggling radio", "info", -1, 1200);
         runQuickCommand("if command -v nmcli >/dev/null 2>&1; then state=$(nmcli radio wifi); [ \"$state\" = enabled ] && nmcli radio wifi off || nmcli radio wifi on; else exit 1; fi", "Toggling WiFi");
+    }
+
+    function toggleBluetoothRadio() {
+        if (!Bluetooth.defaultAdapter) {
+            showToast("", "Bluetooth", "No adapter", "warning", -1, 1500);
+            return;
+        }
+
+        Bluetooth.defaultAdapter.enabled = !Bluetooth.defaultAdapter.enabled;
+        showToast("", "Bluetooth", Bluetooth.defaultAdapter.enabled ? "On" : "Off", Bluetooth.defaultAdapter.enabled ? "success" : "warning", -1, 1300);
     }
 
     function openHyprSettingsFromQuickSettings() {
@@ -1506,6 +1540,7 @@ PanelWindow {
     function toggleMute() {
         volumeMuted = !volumeMuted;
         if (!settingsRestoring) persistSettings();
+        showToast(volumeMuted ? "󰝟" : "", "Sound", volumeMuted ? "Muted" : volumePercent + "%", volumeMuted ? "warning" : "info", volumeMuted ? 0 : volumePercent / 100, 1000);
         volMuteProc.running = true;
     }
 
@@ -1533,6 +1568,7 @@ PanelWindow {
     function setDefaultAudioSink(sink) {
         if (!sink) return;
 
+        showToast("", "Audio Output", audioSinkName(sink), "info", -1, 1400);
         audioDefaultProc.command = ["wpctl", "set-default", String(sink.id)];
         audioDefaultProc.running = true;
     }
@@ -1556,6 +1592,7 @@ PanelWindow {
 
     function setDefaultAudioSource(source) {
         if (!source) return;
+        showToast("", "Audio Input", audioSourceName(source), "info", -1, 1400);
         audioInputDefaultProc.command = ["wpctl", "set-default", String(source.id)];
         audioInputDefaultProc.running = true;
     }
@@ -1564,6 +1601,7 @@ PanelWindow {
         var clamped = Math.max(0, Math.min(100, Math.round(percent)));
         sourcePercent = clamped;
         if (!settingsRestoring) persistSettings();
+        showToast("", "Microphone", clamped + "%", "info", clamped / 100, 1000);
         audioInputSetProc.command = ["sh", "-c", "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ " + (clamped / 100).toFixed(2)];
         audioInputSetProc.running = true;
     }
@@ -1571,6 +1609,7 @@ PanelWindow {
     function toggleSourceMute() {
         sourceMuted = !sourceMuted;
         if (!settingsRestoring) persistSettings();
+        showToast(sourceMuted ? "" : "", "Microphone", sourceMuted ? "Muted" : sourcePercent + "%", sourceMuted ? "warning" : "info", sourceMuted ? 0 : sourcePercent / 100, 1000);
         audioInputMuteProc.running = true;
     }
 
@@ -1634,6 +1673,7 @@ PanelWindow {
         var clamped = Math.max(0, Math.min(100, Math.round(percent)));
         volumePercent = clamped;
         if (!settingsRestoring) persistSettings();
+        showToast(volumeIconText(), "Volume", clamped + "%", "info", clamped / 100, 1000);
         volSetProc.command = ["sh", "-c", "wpctl set-volume @DEFAULT_AUDIO_SINK@ " + (clamped / 100).toFixed(2)];
         volSetProc.running = true;
     }
@@ -1642,6 +1682,7 @@ PanelWindow {
         var newVol = Math.max(0, Math.min(1.0, (volumePercent / 100) + delta));
         volumePercent = Math.round(newVol * 100);
         if (!settingsRestoring) persistSettings();
+        showToast(volumeIconText(), "Volume", volumePercent + "%", "info", volumePercent / 100, 1000);
         volSetProc.command = ["sh", "-c", "wpctl set-volume @DEFAULT_AUDIO_SINK@ " + newVol.toFixed(2)];
         volSetProc.running = true;
     }
@@ -1755,11 +1796,15 @@ PanelWindow {
                 dynamicThemeColors = { "base": match[0] };
                 applyDynamicTheme();
                 dynamicThemeStatus = "Wallpaper color " + match[0];
+                showToast("󰔎", "Wallpaper Theme", match[0], "success", -1, 1600);
                 persistSettings();
             }
         }
         onExited: function(exitCode) {
-            if (exitCode !== 0) dynamicThemeStatus = exitCode === 127 ? "Missing magick/matugen" : "Color failed";
+            if (exitCode !== 0) {
+                dynamicThemeStatus = exitCode === 127 ? "Missing magick/matugen" : "Color failed";
+                showToast("󰔎", "Wallpaper Theme", dynamicThemeStatus, "error", -1, 1800);
+            }
         }
     }
 
@@ -1782,6 +1827,7 @@ PanelWindow {
         command: ["sh", "-c", "true"]
         onExited: function(exitCode) {
             powerProfileStatus = exitCode === 0 ? "Done" : "Failed";
+            showToast("󰓅", "Power Profile", exitCode === 0 ? powerProfile : "Failed", exitCode === 0 ? "success" : "error", -1, 1600);
             refreshPowerProfile();
         }
     }
@@ -1845,6 +1891,7 @@ PanelWindow {
         }
         onExited: function(exitCode, exitStatus) {
             hyprStatusText = exitCode === 0 ? "Done" : (hyprCommandErrorText.length > 0 ? hyprCommandErrorText : "Failed");
+            showToast("󰒓", "Hyprland", hyprStatusText, exitCode === 0 ? "success" : "error", -1, 1500);
         }
     }
 
@@ -1853,6 +1900,7 @@ PanelWindow {
         command: ["sh", "-c", "echo"]
         onExited: function(exitCode, exitStatus) {
             quickSettingsStatusText = exitCode === 0 ? "Done" : "Failed";
+            showToast("󰒓", "Quick Settings", quickSettingsStatusText, exitCode === 0 ? "success" : "error", -1, 1500);
         }
     }
 

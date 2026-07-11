@@ -13,6 +13,7 @@ Item {
     property string captureStatus: "Ready"
     property bool recording: false
     property string recordingPath: ""
+    property string capturePendingPath: ""
     property var captureTools: ({})
     property var windowItems: []
     property string windowFilter: "all"
@@ -89,12 +90,14 @@ Item {
     function copyClipboardItem(line) {
         if (!line) return;
         clipboardStatus = "Copied";
+        root.bar.showToast("", "Clipboard", "Item copied", "success", -1, 1200);
         clipboardCopyProc.command = ["sh", "-c", "printf '%s' " + shellQuote(line) + " | cliphist decode | wl-copy"];
         clipboardCopyProc.running = true;
     }
 
     function clearClipboard() {
         clipboardStatus = "Clearing";
+        root.bar.showToast("", "Clipboard", "Clearing history", "info", -1, 1200);
         clipboardClearProc.running = true;
     }
 
@@ -119,8 +122,10 @@ Item {
 
     function runCapture(command, status, path) {
         captureStatus = status || "Running";
+        capturePendingPath = path || "";
         if (path) root.bar.captureLastPath = path;
         root.bar.closeControlCenter();
+        root.bar.showToast("", "Capture", status || "Running", "info", -1, 1200);
         captureProc.command = ["sh", "-c", "sleep 0.15; " + command];
         captureProc.running = true;
     }
@@ -129,6 +134,7 @@ Item {
         var path = capturePath("screenshot", "png");
         if (!captureActionEnabled("fullscreen")) {
             captureStatus = "Missing tool";
+            root.bar.showToast("", "Capture", captureStatus, "error", -1, 1600);
             return;
         }
         runCapture("mkdir -p " + shellQuote("/home/sado/Pictures/Screenshots") + " && grim " + shellQuote(path) + " && wl-copy < " + shellQuote(path), "Fullscreen saved", path);
@@ -138,6 +144,7 @@ Item {
         var path = capturePath("region", "png");
         if (!captureActionEnabled("region")) {
             captureStatus = "Missing tool";
+            root.bar.showToast("", "Capture", captureStatus, "error", -1, 1600);
             return;
         }
         runCapture("mkdir -p " + shellQuote("/home/sado/Pictures/Screenshots") + " && area=$(slurp) && [ -n \"$area\" ] && grim -g \"$area\" " + shellQuote(path) + " && wl-copy < " + shellQuote(path), "Region saved", path);
@@ -147,6 +154,7 @@ Item {
         var path = capturePath("window", "png");
         if (!captureActionEnabled("window")) {
             captureStatus = "Missing tool";
+            root.bar.showToast("", "Capture", captureStatus, "error", -1, 1600);
             return;
         }
         runCapture("mkdir -p " + shellQuote("/home/sado/Pictures/Screenshots") + " && geom=$(hyprctl activewindow -j | jq -r '\"\\(.at[0]),\\(.at[1]) \\(.size[0])x\\(.size[1])\"') && [ -n \"$geom\" ] && grim -g \"$geom\" " + shellQuote(path) + " && wl-copy < " + shellQuote(path), "Window saved", path);
@@ -159,11 +167,13 @@ Item {
             root.bar.captureLastPath = recordingPath;
             root.bar.persistSettings();
             captureStatus = "Recording stopped";
+            root.bar.showToast("󰑊", "Recording", "Stopped", "success", -1, 1500);
             return;
         }
 
         if (!captureActionEnabled("record")) {
             captureStatus = "Missing tool";
+            root.bar.showToast("󰑊", "Recording", captureStatus, "error", -1, 1600);
             return;
         }
 
@@ -174,11 +184,13 @@ Item {
         recording = true;
         recordingPath = path;
         captureStatus = "Recording";
+        root.bar.showToast("󰑊", "Recording", "Started", "info", -1, 1500);
     }
 
     function pickColor() {
         if (!captureActionEnabled("color")) {
             captureStatus = "Missing tool";
+            root.bar.showToast("", "Color Picker", captureStatus, "error", -1, 1600);
             return;
         }
         runCapture("hyprpicker -a", "Color copied", "");
@@ -195,6 +207,7 @@ Item {
         captureUtilityProc.command = ["sh", "-c", "printf '%s' " + shellQuote(root.bar.captureLastPath) + " | wl-copy"];
         captureUtilityProc.running = true;
         captureStatus = "Path copied";
+        root.bar.showToast("", "Capture", "Path copied", "success", -1, 1200);
     }
 
     function refreshWindows() {
@@ -251,6 +264,7 @@ Item {
 
     function runWindowCommand(command, status, closePanel) {
         windowStatus = status || "Running";
+        root.bar.showToast("󰖯", "Window", windowStatus, "info", -1, 1200);
         if (closePanel) root.bar.closeControlCenter();
         windowCommandProc.command = ["sh", "-c", command];
         windowCommandProc.running = true;
@@ -439,6 +453,7 @@ Item {
             }
             command += (command.length > 0 ? " || " : "") + cleanEnv + "gtk-launch " + shellQuote(item.action) + " >/tmp/quickshell-launcher.log 2>&1";
             launcherStatus = "Launching " + item.name;
+            root.bar.showToast("", "Launcher", item.name, "info", -1, 1400);
             launcherCommandProc.command = ["sh", "-c", command];
             launcherCommandProc.running = true;
             return;
@@ -457,21 +472,26 @@ Item {
             var query = launcherQuery.trim();
             if (query.length === 0) {
                 launcherStatus = "Type a query";
+                root.bar.showToast("󰖟", "Web Search", launcherStatus, "warning", -1, 1400);
                 return;
             }
             root.bar.closeControlCenter();
+            root.bar.showToast("󰖟", "Web Search", query, "info", -1, 1400);
             launcherCommandProc.command = ["sh", "-c", "setsid -f xdg-open " + shellQuote("https://duckduckgo.com/?q=" + encodeURIComponent(query)) + " >/tmp/quickshell-launcher.log 2>&1"];
             launcherCommandProc.running = true;
         } else if (item.action === "files") {
             root.bar.closeControlCenter();
+            root.bar.showToast("", "Files", "Opening home", "info", -1, 1200);
             launcherCommandProc.command = ["sh", "-c", "setsid -f xdg-open \"$HOME\" >/tmp/quickshell-launcher.log 2>&1"];
             launcherCommandProc.running = true;
         } else if (item.action === "terminal") {
             root.bar.closeControlCenter();
+            root.bar.showToast("", "Terminal", "Opening terminal", "info", -1, 1200);
             launcherCommandProc.command = ["sh", "-c", "term=${TERMINAL:-}; if [ -n \"$term\" ]; then setsid -f $term; elif command -v alacritty >/dev/null 2>&1; then setsid -f alacritty; elif command -v kitty >/dev/null 2>&1; then setsid -f kitty; elif command -v foot >/dev/null 2>&1; then setsid -f foot; else exit 1; fi >/tmp/quickshell-launcher.log 2>&1"];
             launcherCommandProc.running = true;
         } else if (item.action === "reload") {
             root.bar.closeControlCenter();
+            root.bar.showToast("󰑓", "Quickshell", "Reloading", "info", -1, 1200);
             launcherCommandProc.command = ["sh", "-c", "qs kill -p /home/sado/.config/quickshell && qs -p /home/sado/.config/quickshell -d >/tmp/quickshell-launcher.log 2>&1"];
             launcherCommandProc.running = true;
         } else if (item.action === "settings") {
@@ -1520,6 +1540,7 @@ Item {
             if (exitCode !== 0) {
                 root.clipboardItems = [];
                 root.clipboardStatus = "cliphist unavailable";
+                root.bar.showToast("", "Clipboard", root.clipboardStatus, "error", -1, 1600);
             }
         }
     }
@@ -1535,6 +1556,7 @@ Item {
         onExited: function(exitCode) {
             root.clipboardItems = [];
             root.clipboardStatus = exitCode === 0 ? "Cleared" : "cliphist unavailable";
+            root.bar.showToast("", "Clipboard", root.clipboardStatus, exitCode === 0 ? "success" : "error", -1, 1400);
         }
     }
 
@@ -1544,9 +1566,14 @@ Item {
         onExited: function(exitCode) {
             if (exitCode !== 0) {
                 root.captureStatus = "Capture failed";
-            } else if (root.bar.captureLastPath.length > 0) {
+                root.bar.showToast("", "Capture", root.captureStatus, "error", -1, 1700);
+            } else if (root.capturePendingPath.length > 0) {
                 root.bar.persistSettings();
+                root.bar.showToast("", "Capture", root.capturePendingPath.replace(/^.*\//, ""), "success", -1, 1700);
+            } else {
+                root.bar.showToast("", "Capture", root.captureStatus, "success", -1, 1400);
             }
+            root.capturePendingPath = "";
         }
     }
 
@@ -1580,9 +1607,11 @@ Item {
             root.recording = false;
             if (exitCode !== 0 && root.captureStatus === "Recording") {
                 root.captureStatus = "Recording failed";
+                root.bar.showToast("󰑊", "Recording", root.captureStatus, "error", -1, 1700);
             } else if (root.recordingPath.length > 0) {
                 root.bar.captureLastPath = root.recordingPath;
                 root.bar.persistSettings();
+                root.bar.showToast("󰑊", "Recording", root.recordingPath.replace(/^.*\//, ""), "success", -1, 1700);
             }
         }
     }
@@ -1613,7 +1642,12 @@ Item {
         id: windowCommandProc
         command: ["sh", "-c", "true"]
         onExited: function(exitCode) {
-            if (exitCode !== 0) root.windowStatus = "Window action failed";
+            if (exitCode !== 0) {
+                root.windowStatus = "Window action failed";
+                root.bar.showToast("󰖯", "Window", root.windowStatus, "error", -1, 1600);
+            } else {
+                root.bar.showToast("󰖯", "Window", root.windowStatus, "success", -1, 1300);
+            }
             refreshWindowsTimer.restart();
         }
     }
@@ -1654,6 +1688,7 @@ Item {
             if (exitCode !== 0) {
                 root.launcherApps = [];
                 root.launcherStatus = "Could not read apps";
+                root.bar.showToast("", "Launcher", root.launcherStatus, "error", -1, 1600);
             }
         }
     }
@@ -1662,7 +1697,12 @@ Item {
         id: launcherCommandProc
         command: ["sh", "-c", "true"]
         onExited: function(exitCode) {
-            if (exitCode !== 0) root.launcherStatus = "Launch failed";
+            if (exitCode !== 0) {
+                root.launcherStatus = "Launch failed";
+                root.bar.showToast("", "Launcher", root.launcherStatus, "error", -1, 1600);
+            } else {
+                root.bar.showToast("", "Launcher", "Command sent", "success", -1, 1100);
+            }
         }
     }
 }

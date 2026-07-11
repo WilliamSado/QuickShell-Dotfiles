@@ -30,4 +30,5 @@ QtObject {
     property bool notificationCenterClosing: false
     property bool controlCenterOpen: false
     property bool controlCenterClosing: false
+    property bool toastEnabled: true
 }

@@ -172,7 +172,7 @@ Item {
                                 anchors.fill: parent
                                 onClicked: {
                                     if (modelData.action === "wifi") root.bar.toggleWifiRadio();
-                                    else if (modelData.action === "bluetooth" && Bluetooth.defaultAdapter) Bluetooth.defaultAdapter.enabled = !Bluetooth.defaultAdapter.enabled;
+                                    else if (modelData.action === "bluetooth") root.bar.toggleBluetoothRadio();
                                     else if (modelData.action === "mute") root.bar.toggleMute();
                                     else if (modelData.action === "display") root.bar.openHyprSettingsFromQuickSettings();
                                     else if (modelData.action === "notifications") root.bar.openNotificationCenter();

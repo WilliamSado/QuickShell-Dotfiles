@@ -39,6 +39,10 @@ ShellRoot {
         brightnessPercent: barWindow.quickBrightnessPercent
     }
 
+    StatusToast {
+        bar: barWindow
+    }
+
     QuickSettingsEdge {
         targetBar: barWindow
     }

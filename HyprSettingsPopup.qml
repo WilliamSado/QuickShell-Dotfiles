@@ -973,7 +973,7 @@ Item {
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         onClicked: {
-                                            if (Bluetooth.defaultAdapter) Bluetooth.defaultAdapter.enabled = !Bluetooth.defaultAdapter.enabled;
+                                            root.bar.toggleBluetoothRadio();
                                         }
                                     }
                                 }
