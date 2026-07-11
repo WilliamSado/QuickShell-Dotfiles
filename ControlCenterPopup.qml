@@ -24,6 +24,9 @@ Item {
     property string maintenanceAurUpdates: "--"
     property string maintenanceCacheSize: "--"
     property bool maintenanceBusy: false
+    property var vpnItems: []
+    property string vpnStatus: "Ready"
+    property bool vpnBusy: false
     property var launcherApps: []
     property string launcherQuery: ""
     property string launcherStatus: "Ready"
@@ -38,6 +41,7 @@ Item {
         { type: "builtin", icon: "", name: "Capture", sub: "Screenshot / recording", action: "capture" },
         { type: "builtin", icon: "", name: "Clipboard", sub: "Clipboard history", action: "clipboard" },
         { type: "builtin", icon: "󰖯", name: "Windows", sub: "Window manager", action: "windows" },
+        { type: "builtin", icon: "󰖂", name: "VPN", sub: "Network tunnel", action: "vpn" },
         { type: "builtin", icon: "󰏖", name: "Maintenance", sub: "Updates / cache", action: "maintenance" },
         { type: "builtin", icon: "󰊴", name: "Game Mode", sub: "Performance focus", action: "game" },
         { type: "builtin", icon: "󰒲", name: "Focus", sub: "Toggle focus mode", action: "focus" }
@@ -62,6 +66,8 @@ Item {
                 root.refreshCaptureTools();
             } else if (root.bar.controlCenterPage === "windows") {
                 root.refreshWindows();
+            } else if (root.bar.controlCenterPage === "vpn") {
+                root.refreshVpn();
             } else if (root.bar.controlCenterPage === "maintenance") {
                 root.refreshMaintenance();
             }
@@ -69,11 +75,12 @@ Item {
     }
 
     readonly property var pages: [
-        { key: "launcher", label: "Launcher", icon: "" },
-        { key: "clipboard", label: "Clipboard", icon: "" },
-        { key: "capture", label: "Capture", icon: "" },
-        { key: "windows", label: "Windows", icon: "󰖯" },
-        { key: "maintenance", label: "Maintain", icon: "󰏖" },
+        { key: "launcher", label: "Launch", icon: "" },
+        { key: "clipboard", label: "Clip", icon: "" },
+        { key: "capture", label: "Shot", icon: "" },
+        { key: "windows", label: "Win", icon: "󰖯" },
+        { key: "vpn", label: "VPN", icon: "󰖂" },
+        { key: "maintenance", label: "Clean", icon: "󰏖" },
         { key: "focus", label: "Focus", icon: "󰒲" }
     ]
 
@@ -100,6 +107,7 @@ Item {
         if (root.bar.controlCenterPage === "clipboard") return 310;
         if (root.bar.controlCenterPage === "capture") return 292;
         if (root.bar.controlCenterPage === "windows") return 350;
+        if (root.bar.controlCenterPage === "vpn") return 310;
         if (root.bar.controlCenterPage === "maintenance") return 310;
         if (root.bar.controlCenterPage === "focus") return 260;
         return 170;
@@ -385,6 +393,62 @@ Item {
         }
     }
 
+    function refreshVpn() {
+        if (vpnBusy) return;
+        vpnBusy = true;
+        vpnStatus = "Loading";
+        vpnListProc.running = true;
+    }
+
+    function parseVpnItems(text) {
+        var items = [];
+        var byName = ({});
+        var lines = String(text || "").split("\n");
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (line.length === 0) continue;
+            if (line.indexOf("status=") === 0) {
+                vpnStatus = line.slice(7);
+                continue;
+            }
+
+            var parts = line.split("\t");
+            if (parts.length < 3) continue;
+            var name = parts[0];
+            var next = {
+                name: parts[0],
+                type: parts[1],
+                active: parts[2] === "active",
+                device: parts.length >= 4 ? parts[3] : ""
+            };
+
+            if (byName[name] !== undefined) {
+                if (next.active) items[byName[name]] = next;
+            } else {
+                byName[name] = items.length;
+                items.push(next);
+            }
+        }
+
+        vpnItems = items;
+        if (vpnStatus === "Loading" || vpnStatus === "Ready") {
+            var activeCount = 0;
+            for (var j = 0; j < items.length; j++) {
+                if (items[j].active) activeCount++;
+            }
+            vpnStatus = items.length === 0 ? "No VPN profiles" : activeCount > 0 ? activeCount + " active" : items.length + " profiles";
+        }
+    }
+
+    function toggleVpn(item) {
+        if (!item || !item.name || vpnBusy) return;
+        vpnBusy = true;
+        vpnStatus = item.active ? "Disconnecting " + item.name : "Connecting " + item.name;
+        root.bar.showToast("󰖂", "VPN", vpnStatus, "info", -1, 1400);
+        vpnCommandProc.command = ["nmcli", "connection", item.active ? "down" : "up", item.name];
+        vpnCommandProc.running = true;
+    }
+
     function parseLauncherApps(text) {
         var items = [];
         var seen = ({});
@@ -600,6 +664,9 @@ Item {
         } else if (item.action === "windows") {
             root.bar.controlCenterPage = "windows";
             refreshWindows();
+        } else if (item.action === "vpn") {
+            root.bar.controlCenterPage = "vpn";
+            refreshVpn();
         } else if (item.action === "maintenance") {
             root.bar.controlCenterPage = "maintenance";
             refreshMaintenance();
@@ -665,6 +732,7 @@ Item {
             if (visible && root.bar.controlCenterPage === "clipboard") root.refreshClipboard();
             if (visible && root.bar.controlCenterPage === "windows") root.refreshWindows();
             if (visible && root.bar.controlCenterPage === "capture") root.refreshCaptureTools();
+            if (visible && root.bar.controlCenterPage === "vpn") root.refreshVpn();
             if (visible && root.bar.controlCenterPage === "maintenance") root.refreshMaintenance();
         }
 
@@ -788,6 +856,7 @@ Item {
                                     if (modelData.key === "clipboard") root.refreshClipboard();
                                     if (modelData.key === "windows") root.refreshWindows();
                                     if (modelData.key === "capture") root.refreshCaptureTools();
+                                    if (modelData.key === "vpn") root.refreshVpn();
                                     if (modelData.key === "maintenance") root.refreshMaintenance();
                                 }
                             }
@@ -802,7 +871,7 @@ Item {
                     color: root.bar.sectionPillColor
 
                     Column {
-                        visible: root.bar.controlCenterPage !== "focus" && root.bar.controlCenterPage !== "clipboard" && root.bar.controlCenterPage !== "capture" && root.bar.controlCenterPage !== "windows" && root.bar.controlCenterPage !== "maintenance" && root.bar.controlCenterPage !== "launcher"
+                        visible: root.bar.controlCenterPage !== "focus" && root.bar.controlCenterPage !== "clipboard" && root.bar.controlCenterPage !== "capture" && root.bar.controlCenterPage !== "windows" && root.bar.controlCenterPage !== "vpn" && root.bar.controlCenterPage !== "maintenance" && root.bar.controlCenterPage !== "launcher"
                         anchors.centerIn: parent
                         spacing: 8
 
@@ -1711,6 +1780,152 @@ Item {
                     }
 
                     Column {
+                        visible: root.bar.controlCenterPage === "vpn"
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 14
+                        spacing: 10
+
+                        RowLayout {
+                            width: parent.width
+                            height: 32
+                            spacing: 8
+
+                            Text {
+                                text: "󰖂"
+                                color: root.bar.networkTextColor
+                                font.family: root.bar.iconFont
+                                font.pixelSize: 16
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Text {
+                                text: root.vpnStatus
+                                color: root.bar.mutedTextColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 12
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                                elide: Text.ElideRight
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 72
+                                Layout.preferredHeight: 30
+                                radius: 15
+                                opacity: root.vpnBusy ? 0.55 : 1
+                                color: vpnRefreshMouse.containsMouse && !root.vpnBusy ? root.bar.activePillColor : root.bar.pillColor
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: root.vpnBusy ? "Busy" : "Refresh"
+                                    color: root.bar.textColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 11
+                                }
+
+                                MouseArea {
+                                    id: vpnRefreshMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: root.refreshVpn()
+                                }
+                            }
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: root.vpnItems.length === 0
+                            text: root.vpnStatus === "Ready" ? "No VPN profiles" : root.vpnStatus
+                            color: root.bar.mutedTextColor
+                            font.family: root.bar.barFont
+                            font.pixelSize: 13
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+
+                        Flickable {
+                            width: parent.width
+                            height: 236
+                            contentWidth: width
+                            contentHeight: vpnList.implicitHeight
+                            clip: true
+                            visible: root.vpnItems.length > 0
+
+                            Column {
+                                id: vpnList
+                                width: parent.width
+                                spacing: 8
+
+                                Repeater {
+                                    model: root.vpnItems
+
+                                    Rectangle {
+                                        width: vpnList.width
+                                        height: 58
+                                        radius: 16
+                                        opacity: root.vpnBusy ? 0.6 : 1
+                                        color: modelData.active ? root.bar.activePillColor : vpnItemMouse.containsMouse && !root.vpnBusy ? root.bar.activePillColor : root.bar.pillColor
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 12
+                                            spacing: 10
+
+                                            Text {
+                                                text: modelData.active ? "󰖂" : "󰦝"
+                                                color: root.bar.textColor
+                                                font.family: root.bar.iconFont
+                                                font.pixelSize: 16
+                                                Layout.alignment: Qt.AlignVCenter
+                                            }
+
+                                            Column {
+                                                Layout.fillWidth: true
+                                                Layout.alignment: Qt.AlignVCenter
+                                                spacing: 2
+
+                                                Text {
+                                                    width: parent.width
+                                                    text: modelData.name
+                                                    color: root.bar.textColor
+                                                    font.family: root.bar.barFont
+                                                    font.pixelSize: 12
+                                                    elide: Text.ElideRight
+                                                }
+
+                                                Text {
+                                                    width: parent.width
+                                                    text: modelData.active ? "Active" + (modelData.device.length > 0 ? " · " + modelData.device : "") : "Disconnected"
+                                                    color: root.bar.mutedTextColor
+                                                    font.family: root.bar.barFont
+                                                    font.pixelSize: 10
+                                                    elide: Text.ElideRight
+                                                }
+                                            }
+
+                                            Text {
+                                                text: modelData.active ? "Down" : "Up"
+                                                color: root.bar.mutedTextColor
+                                                font.family: root.bar.barFont
+                                                font.pixelSize: 11
+                                                Layout.alignment: Qt.AlignVCenter
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: vpnItemMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            onClicked: root.toggleVpn(modelData)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Column {
                         visible: root.bar.controlCenterPage === "focus"
                         anchors.left: parent.left
                         anchors.right: parent.right
@@ -1997,6 +2212,43 @@ Item {
         interval: 220
         repeat: false
         onTriggered: root.refreshWindows()
+    }
+
+    Process {
+        id: vpnListProc
+        command: ["sh", "-c", "if ! command -v nmcli >/dev/null 2>&1; then printf 'status=nmcli unavailable\\n'; exit 0; fi; nmcli -t -f NAME,TYPE connection show 2>/dev/null | awk -F: '$2 ~ /vpn|wireguard/ { printf \"%s\\t%s\\tdisconnected\\t\\n\", $1, $2 }'; nmcli -t -f NAME,TYPE,DEVICE connection show --active 2>/dev/null | awk -F: '$2 ~ /vpn|wireguard/ { printf \"%s\\t%s\\tactive\\t%s\\n\", $1, $2, $3 }'; printf 'status=Ready\\n'"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: root.parseVpnItems(text)
+        }
+
+        onExited: function(exitCode) {
+            root.vpnBusy = false;
+            if (exitCode !== 0) {
+                root.vpnItems = [];
+                root.vpnStatus = "VPN check failed";
+                root.bar.showToast("󰖂", "VPN", root.vpnStatus, "error", -1, 1600);
+            }
+        }
+    }
+
+    Process {
+        id: vpnCommandProc
+        command: ["sh", "-c", "true"]
+        onExited: function(exitCode) {
+            root.vpnBusy = false;
+            root.vpnStatus = exitCode === 0 ? "Command sent" : "VPN action failed";
+            root.bar.showToast("󰖂", "VPN", root.vpnStatus, exitCode === 0 ? "success" : "error", -1, 1500);
+            vpnRefreshDelay.restart();
+        }
+    }
+
+    Timer {
+        id: vpnRefreshDelay
+        interval: 700
+        repeat: false
+        onTriggered: root.refreshVpn()
     }
 
     Process {
