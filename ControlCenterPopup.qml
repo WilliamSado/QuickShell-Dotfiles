@@ -31,6 +31,8 @@ Item {
     property var serviceItems: []
     property string servicesStatus: "Ready"
     property bool servicesBusy: false
+    property var keybindItems: []
+    property string keybindsStatus: "Ready"
     property string todoInput: ""
     property var launcherApps: []
     property string launcherQuery: ""
@@ -51,6 +53,7 @@ Item {
         { type: "builtin", icon: "󰖂", name: "VPN", sub: "Network tunnel", action: "vpn" },
         { type: "builtin", icon: "󰏖", name: "Maintenance", sub: "Updates / cache", action: "maintenance" },
         { type: "builtin", icon: "󰒋", name: "Services", sub: "User session daemons", action: "services" },
+        { type: "builtin", icon: "󰌌", name: "Keybinds", sub: "Hyprland shortcuts", action: "keybinds" },
         { type: "builtin", icon: "󰊴", name: "Game Mode", sub: "Performance focus", action: "game" },
         { type: "builtin", icon: "󰒲", name: "Focus", sub: "Toggle focus mode", action: "focus" }
     ]
@@ -84,6 +87,8 @@ Item {
                 root.refreshMaintenance();
             } else if (root.bar.controlCenterPage === "services") {
                 root.refreshServices();
+            } else if (root.bar.controlCenterPage === "keybinds") {
+                root.refreshKeybinds();
             }
         }
     }
@@ -98,6 +103,7 @@ Item {
         { key: "vpn", label: "VPN", icon: "󰖂" },
         { key: "maintenance", label: "Clean", icon: "󰏖" },
         { key: "services", label: "Svc", icon: "󰒋" },
+        { key: "keybinds", label: "Keys", icon: "󰌌" },
         { key: "focus", label: "Focus", icon: "󰒲" }
     ]
 
@@ -129,6 +135,7 @@ Item {
         if (root.bar.controlCenterPage === "vpn") return 310;
         if (root.bar.controlCenterPage === "maintenance") return 310;
         if (root.bar.controlCenterPage === "services") return 310;
+        if (root.bar.controlCenterPage === "keybinds") return 330;
         if (root.bar.controlCenterPage === "focus") return 330;
         return 170;
     }
@@ -603,6 +610,50 @@ Item {
         servicesCommandProc.running = true;
     }
 
+    function refreshKeybinds() {
+        keybindsStatus = "Loading";
+        keybindItems = [];
+        keybindsListProc.running = true;
+    }
+
+    function parseKeybinds(text) {
+        var items = [];
+        var group = "General";
+        var lines = String(text || "").split("\n");
+        for (var i = 0; i < lines.length; i++) {
+            var raw = lines[i];
+            var line = raw.trim();
+            if (line.length === 0) continue;
+            if (line[0] === "#") {
+                var nextGroup = line.replace(/^#+\s*/, "").trim();
+                if (nextGroup.length > 0) group = nextGroup;
+                continue;
+            }
+            if (line.indexOf("bind") !== 0 || line.indexOf("=") < 0) continue;
+
+            var value = line.slice(line.indexOf("=") + 1).trim();
+            var parts = value.split(",");
+            if (parts.length < 3) continue;
+
+            var mods = parts[0].trim();
+            var key = parts[1].trim();
+            var action = parts[2].trim();
+            var args = parts.slice(3).join(",").trim();
+            if (key.length === 0) key = "special";
+
+            items.push({
+                group: group,
+                combo: (mods.length > 0 ? mods.replace(/\$mainMod/g, "Super") + " + " : "") + key,
+                action: action,
+                args: args,
+                raw: raw
+            });
+        }
+
+        keybindItems = items;
+        keybindsStatus = items.length > 0 ? items.length + " shortcuts" : "No keybinds";
+    }
+
     function parseLauncherApps(text) {
         var items = [];
         var seen = ({});
@@ -836,6 +887,9 @@ Item {
         } else if (item.action === "services") {
             root.bar.controlCenterPage = "services";
             refreshServices();
+        } else if (item.action === "keybinds") {
+            root.bar.controlCenterPage = "keybinds";
+            refreshKeybinds();
         } else if (item.action === "game") {
             root.bar.toggleGameMode();
             root.bar.closeControlCenter();
@@ -912,6 +966,7 @@ Item {
             if (visible && root.bar.controlCenterPage === "vpn") root.refreshVpn();
             if (visible && root.bar.controlCenterPage === "maintenance") root.refreshMaintenance();
             if (visible && root.bar.controlCenterPage === "services") root.refreshServices();
+            if (visible && root.bar.controlCenterPage === "keybinds") root.refreshKeybinds();
         }
 
         Rectangle {
@@ -1040,6 +1095,7 @@ Item {
                                     if (modelData.key === "vpn") root.refreshVpn();
                                     if (modelData.key === "maintenance") root.refreshMaintenance();
                                     if (modelData.key === "services") root.refreshServices();
+                                    if (modelData.key === "keybinds") root.refreshKeybinds();
                                 }
                             }
                         }
@@ -2402,6 +2458,166 @@ Item {
                     }
 
                     Column {
+                        visible: root.bar.controlCenterPage === "keybinds"
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 14
+                        spacing: 10
+
+                        RowLayout {
+                            width: parent.width
+                            height: 32
+                            spacing: 8
+
+                            Text {
+                                text: "󰌌"
+                                color: root.bar.networkTextColor
+                                font.family: root.bar.iconFont
+                                font.pixelSize: 16
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Text {
+                                text: root.keybindsStatus
+                                color: root.bar.mutedTextColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 12
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                                elide: Text.ElideRight
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 72
+                                Layout.preferredHeight: 30
+                                radius: 15
+                                color: keybindRefreshMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "Refresh"
+                                    color: root.bar.textColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 11
+                                }
+
+                                MouseArea {
+                                    id: keybindRefreshMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: root.refreshKeybinds()
+                                }
+                            }
+                        }
+
+                        Text {
+                            width: parent.width
+                            text: "读取 hypr/conf.d/hyprland.d/binds.conf；这里仅做速查，不修改快捷键"
+                            color: root.bar.mutedTextColor
+                            font.family: root.bar.barFont
+                            font.pixelSize: 11
+                            wrapMode: Text.WordWrap
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: root.keybindItems.length === 0
+                            text: root.keybindsStatus
+                            color: root.bar.mutedTextColor
+                            font.family: root.bar.barFont
+                            font.pixelSize: 13
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+
+                        Flickable {
+                            width: parent.width
+                            height: 242
+                            contentWidth: width
+                            contentHeight: keybindsList.implicitHeight
+                            clip: true
+                            visible: root.keybindItems.length > 0
+
+                            Column {
+                                id: keybindsList
+                                width: parent.width
+                                spacing: 8
+
+                                Repeater {
+                                    model: root.keybindItems
+
+                                    Rectangle {
+                                        width: keybindsList.width
+                                        height: 54
+                                        radius: 15
+                                        color: keybindItemMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 12
+                                            spacing: 10
+
+                                            Column {
+                                                Layout.preferredWidth: 154
+                                                Layout.alignment: Qt.AlignVCenter
+                                                spacing: 2
+
+                                                Text {
+                                                    width: parent.width
+                                                    text: modelData.combo
+                                                    color: root.bar.textColor
+                                                    font.family: root.bar.barFont
+                                                    font.pixelSize: 12
+                                                    elide: Text.ElideRight
+                                                }
+
+                                                Text {
+                                                    width: parent.width
+                                                    text: modelData.group
+                                                    color: root.bar.mutedTextColor
+                                                    font.family: root.bar.barFont
+                                                    font.pixelSize: 10
+                                                    elide: Text.ElideRight
+                                                }
+                                            }
+
+                                            Column {
+                                                Layout.fillWidth: true
+                                                Layout.alignment: Qt.AlignVCenter
+                                                spacing: 2
+
+                                                Text {
+                                                    width: parent.width
+                                                    text: modelData.action
+                                                    color: root.bar.networkTextColor
+                                                    font.family: root.bar.barFont
+                                                    font.pixelSize: 12
+                                                    elide: Text.ElideRight
+                                                }
+
+                                                Text {
+                                                    width: parent.width
+                                                    text: modelData.args.length > 0 ? modelData.args : modelData.raw
+                                                    color: root.bar.mutedTextColor
+                                                    font.family: root.bar.barFont
+                                                    font.pixelSize: 10
+                                                    elide: Text.ElideRight
+                                                }
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: keybindItemMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Column {
                         visible: root.bar.controlCenterPage === "services"
                         anchors.left: parent.left
                         anchors.right: parent.right
@@ -3218,6 +3434,24 @@ Item {
         interval: 900
         repeat: false
         onTriggered: root.refreshServices()
+    }
+
+    Process {
+        id: keybindsListProc
+        command: ["sh", "-c", "cat /home/sado/.config/hypr/conf.d/hyprland.d/binds.conf 2>/dev/null"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: root.parseKeybinds(text)
+        }
+
+        onExited: function(exitCode) {
+            if (exitCode !== 0) {
+                root.keybindItems = [];
+                root.keybindsStatus = "Could not read binds";
+                root.bar.showToast("󰌌", "Keybinds", root.keybindsStatus, "error", -1, 1600);
+            }
+        }
     }
 
     Process {
