@@ -127,6 +127,8 @@ PanelWindow {
     property bool focusModeEnabled: false
     property bool mediaHiddenInFocus: true
     property bool dndBeforeFocusMode: false
+    property bool gameModeEnabled: false
+    property var gameModeRestoreState: ({})
     property bool dynamicThemeEnabled: false
     property var dynamicThemeColors: ({})
     property string dynamicThemeStatus: "Ready"
@@ -1069,9 +1071,16 @@ PanelWindow {
         notificationsDnd = settingsStore.doNotDisturb;
         focusModeEnabled = settingsStore.focusModeEnabled;
         mediaHiddenInFocus = settingsStore.mediaHiddenInFocus;
+        gameModeEnabled = settingsStore.gameModeEnabled;
         recentLauncherApps = settingsStore.recentLauncherApps;
         focusDimNotifications = settingsStore.focusDimNotifications;
         captureLastPath = settingsStore.captureLastPath;
+        if (gameModeEnabled) {
+            focusModeEnabled = true;
+            notificationsDnd = true;
+            mediaHiddenInFocus = true;
+            focusDimNotifications = true;
+        }
         if (focusModeEnabled) {
             dndBeforeFocusMode = false;
             notificationsDnd = true;
@@ -1095,6 +1104,7 @@ PanelWindow {
         settingsStore.doNotDisturb = notificationsDnd;
         settingsStore.focusModeEnabled = focusModeEnabled;
         settingsStore.mediaHiddenInFocus = mediaHiddenInFocus;
+        settingsStore.gameModeEnabled = gameModeEnabled;
         settingsStore.dynamicThemeEnabled = dynamicThemeEnabled;
         settingsStore.dynamicThemeColors = dynamicThemeColors;
         settingsStore.recentLauncherApps = recentLauncherApps;
@@ -1248,6 +1258,44 @@ PanelWindow {
         focusDimNotifications = !focusDimNotifications;
         persistSettings();
         showToast("", "Focus Notifications", focusDimNotifications ? "Dimmed" : "Normal", "info", -1, 1400);
+    }
+
+    function setGameMode(enabled) {
+        if (gameModeEnabled === enabled) return;
+
+        if (enabled) {
+            gameModeRestoreState = {
+                "powerProfile": powerProfile,
+                "focusModeEnabled": focusModeEnabled,
+                "mediaHiddenInFocus": mediaHiddenInFocus,
+                "focusDimNotifications": focusDimNotifications,
+                "hyprBlurEnabled": hyprBlurEnabled
+            };
+            gameModeEnabled = true;
+            mediaHiddenInFocus = true;
+            focusDimNotifications = true;
+            if (!focusModeEnabled) setFocusMode(true);
+            if (powerProfile !== "performance") setPowerProfile("performance");
+            if (hyprBlurEnabled) toggleHyprBlur();
+            persistSettings();
+            showToast("󰊴", "Game Mode", "Performance focus enabled", "success", -1, 1800);
+            return;
+        }
+
+        var restore = gameModeRestoreState || ({});
+        gameModeEnabled = false;
+        mediaHiddenInFocus = restore.mediaHiddenInFocus !== undefined ? restore.mediaHiddenInFocus : mediaHiddenInFocus;
+        focusDimNotifications = restore.focusDimNotifications !== undefined ? restore.focusDimNotifications : focusDimNotifications;
+        if (restore.focusModeEnabled !== undefined) setFocusMode(restore.focusModeEnabled);
+        if (restore.powerProfile && restore.powerProfile !== powerProfile && restore.powerProfile !== "unavailable") setPowerProfile(restore.powerProfile);
+        if (restore.hyprBlurEnabled !== undefined && restore.hyprBlurEnabled !== hyprBlurEnabled) toggleHyprBlur();
+        gameModeRestoreState = ({});
+        persistSettings();
+        showToast("󰊴", "Game Mode", "Restored", "info", -1, 1600);
+    }
+
+    function toggleGameMode() {
+        setGameMode(!gameModeEnabled);
     }
 
     function addNotification(notification) {

@@ -33,6 +33,7 @@ Item {
         { type: "builtin", icon: "", name: "Capture", sub: "Screenshot / recording", action: "capture" },
         { type: "builtin", icon: "", name: "Clipboard", sub: "Clipboard history", action: "clipboard" },
         { type: "builtin", icon: "󰖯", name: "Windows", sub: "Window manager", action: "windows" },
+        { type: "builtin", icon: "󰊴", name: "Game Mode", sub: "Performance focus", action: "game" },
         { type: "builtin", icon: "󰒲", name: "Focus", sub: "Toggle focus mode", action: "focus" }
     ]
 
@@ -329,6 +330,17 @@ Item {
 
     function launcherResults() {
         var query = launcherQuery.toLowerCase().trim();
+        var rawQuery = launcherQuery.trim();
+        if (rawQuery.length > 1 && rawQuery[0] === "=") {
+            return [{ type: "command", icon: "󰃬", name: "Calculate", sub: rawQuery.slice(1).trim(), action: "calc", commandText: rawQuery.slice(1).trim() }];
+        }
+        if (rawQuery.length > 1 && rawQuery[0] === "?") {
+            return [{ type: "command", icon: "󰖟", name: "Search web", sub: rawQuery.slice(1).trim(), action: "webQuery", commandText: rawQuery.slice(1).trim() }];
+        }
+        if (rawQuery.length > 1 && rawQuery[0] === ">") {
+            return [{ type: "command", icon: "󰘳", name: "Hyprland dispatch", sub: rawQuery.slice(1).trim(), action: "hyprDispatch", commandText: rawQuery.slice(1).trim() }];
+        }
+
         var source = launcherBuiltins.concat(recentLauncherItems()).concat(launcherWindowItems()).concat(launcherApps);
         if (query.length === 0) return source.slice(0, 18);
 
@@ -464,6 +476,11 @@ Item {
             return;
         }
 
+        if (item.type === "command") {
+            launchCommandItem(item);
+            return;
+        }
+
         if (item.action === "lock") {
             root.bar.closeControlCenter();
             launcherCommandProc.command = ["hyprlock"];
@@ -504,8 +521,45 @@ Item {
         } else if (item.action === "windows") {
             root.bar.controlCenterPage = "windows";
             refreshWindows();
+        } else if (item.action === "game") {
+            root.bar.toggleGameMode();
+            root.bar.closeControlCenter();
         } else if (item.action === "focus") {
             root.bar.toggleFocusMode();
+        }
+    }
+
+    function launchCommandItem(item) {
+        var text = String(item.commandText || "").trim();
+        if (text.length === 0) {
+            launcherStatus = "Empty command";
+            root.bar.showToast("", "Launcher", launcherStatus, "warning", -1, 1300);
+            return;
+        }
+
+        root.bar.closeControlCenter();
+        if (item.action === "calc") {
+            launcherStatus = "Calculating";
+            var py = "import math; expr=" + JSON.stringify(text) + "; allowed={k:getattr(math,k) for k in dir(math) if not k.startswith('_')}; allowed.update({'abs':abs,'round':round,'min':min,'max':max,'pow':pow}); print(eval(expr, {'__builtins__':{}}, allowed))";
+            launcherCommandProc.command = ["sh", "-c", "python3 -c " + shellQuote(py) + " >/tmp/quickshell-launcher.log 2>&1 && wl-copy < /tmp/quickshell-launcher.log"];
+            root.bar.showToast("󰃬", "Calculator", text, "info", -1, 1300);
+            launcherCommandProc.running = true;
+            return;
+        }
+
+        if (item.action === "webQuery") {
+            launcherStatus = "Searching";
+            launcherCommandProc.command = ["sh", "-c", "setsid -f xdg-open " + shellQuote("https://duckduckgo.com/?q=" + encodeURIComponent(text)) + " >/tmp/quickshell-launcher.log 2>&1"];
+            root.bar.showToast("󰖟", "Web Search", text, "info", -1, 1300);
+            launcherCommandProc.running = true;
+            return;
+        }
+
+        if (item.action === "hyprDispatch") {
+            launcherStatus = "Dispatching";
+            launcherCommandProc.command = ["sh", "-c", "hyprctl dispatch " + shellQuote(text) + " >/tmp/quickshell-launcher.log 2>&1"];
+            root.bar.showToast("󰘳", "Hyprland", text, "info", -1, 1300);
+            launcherCommandProc.running = true;
         }
     }
 

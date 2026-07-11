@@ -34,6 +34,7 @@ Item {
     property var recentLauncherApps: []
     property bool focusDimNotifications: false
     property string captureLastPath: ""
+    property bool gameModeEnabled: false
 
     signal loaded()
     signal saved()
@@ -75,7 +76,8 @@ Item {
             "dynamicThemeColors": dynamicThemeColors,
             "recentLauncherApps": recentLauncherApps,
             "focusDimNotifications": focusDimNotifications,
-            "captureLastPath": captureLastPath
+            "captureLastPath": captureLastPath,
+            "gameModeEnabled": gameModeEnabled
         };
 
         var text = JSON.stringify(data, null, 2);
@@ -120,6 +122,7 @@ Item {
                     if (data.recentLauncherApps !== undefined && data.recentLauncherApps.length !== undefined) root.recentLauncherApps = data.recentLauncherApps;
                     if (data.focusDimNotifications !== undefined) root.focusDimNotifications = data.focusDimNotifications;
                     if (data.captureLastPath !== undefined) root.captureLastPath = data.captureLastPath;
+                    if (data.gameModeEnabled !== undefined) root.gameModeEnabled = data.gameModeEnabled;
                 } catch (error) {
                     console.warn("Could not parse quickshell settings:", error);
                 }

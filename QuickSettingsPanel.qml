@@ -120,6 +120,7 @@ Item {
                             { icon: "", label: "Capture", sub: "Screenshot", action: "capture", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "capture" },
                             { icon: "󰖯", label: "Windows", sub: "Manager", action: "windows", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "windows" },
                             { icon: "󰒲", label: "Focus", sub: root.bar.focusModeEnabled ? "DND on" : "Off", action: "focus", active: root.bar.focusModeEnabled },
+                            { icon: "󰊴", label: "Game mode", sub: root.bar.gameModeEnabled ? "Performance" : "Off", action: "game", active: root.bar.gameModeEnabled },
                             { icon: "󰂄", label: "Animations", sub: root.bar.hyprAnimationsEnabled ? "On" : "Off", action: "animations", active: root.bar.hyprAnimationsEnabled },
                             { icon: "󰖑", label: "Blur", sub: root.bar.hyprBlurEnabled ? "On" : "Off", action: "blur", active: root.bar.hyprBlurEnabled }
                         ]
@@ -185,6 +186,7 @@ Item {
                                     else if (modelData.action === "capture") root.bar.openControlCenterFromQuickSettings("capture");
                                     else if (modelData.action === "windows") root.bar.openControlCenterFromQuickSettings("windows");
                                     else if (modelData.action === "focus") root.bar.openControlCenterFromQuickSettings("focus");
+                                    else if (modelData.action === "game") root.bar.toggleGameMode();
                                     else if (modelData.action === "animations") root.bar.toggleHyprAnimations();
                                     else if (modelData.action === "blur") root.bar.toggleHyprBlur();
                                 }
