@@ -28,6 +28,9 @@ Item {
     property var vpnItems: []
     property string vpnStatus: "Ready"
     property bool vpnBusy: false
+    property var serviceItems: []
+    property string servicesStatus: "Ready"
+    property bool servicesBusy: false
     property string todoInput: ""
     property var launcherApps: []
     property string launcherQuery: ""
@@ -47,6 +50,7 @@ Item {
         { type: "builtin", icon: "󰹑", name: "Scratchpad", sub: "Special workspace", action: "scratch" },
         { type: "builtin", icon: "󰖂", name: "VPN", sub: "Network tunnel", action: "vpn" },
         { type: "builtin", icon: "󰏖", name: "Maintenance", sub: "Updates / cache", action: "maintenance" },
+        { type: "builtin", icon: "󰒋", name: "Services", sub: "User session daemons", action: "services" },
         { type: "builtin", icon: "󰊴", name: "Game Mode", sub: "Performance focus", action: "game" },
         { type: "builtin", icon: "󰒲", name: "Focus", sub: "Toggle focus mode", action: "focus" }
     ]
@@ -78,6 +82,8 @@ Item {
                 root.refreshVpn();
             } else if (root.bar.controlCenterPage === "maintenance") {
                 root.refreshMaintenance();
+            } else if (root.bar.controlCenterPage === "services") {
+                root.refreshServices();
             }
         }
     }
@@ -91,6 +97,7 @@ Item {
         { key: "scratch", label: "Pad", icon: "󰹑" },
         { key: "vpn", label: "VPN", icon: "󰖂" },
         { key: "maintenance", label: "Clean", icon: "󰏖" },
+        { key: "services", label: "Svc", icon: "󰒋" },
         { key: "focus", label: "Focus", icon: "󰒲" }
     ]
 
@@ -121,6 +128,7 @@ Item {
         if (root.bar.controlCenterPage === "scratch") return 310;
         if (root.bar.controlCenterPage === "vpn") return 310;
         if (root.bar.controlCenterPage === "maintenance") return 310;
+        if (root.bar.controlCenterPage === "services") return 310;
         if (root.bar.controlCenterPage === "focus") return 330;
         return 170;
     }
@@ -547,6 +555,54 @@ Item {
         vpnCommandProc.running = true;
     }
 
+    function refreshServices() {
+        if (servicesBusy) return;
+        servicesBusy = true;
+        servicesStatus = "Checking";
+        serviceItems = [];
+        servicesListProc.running = true;
+    }
+
+    function parseServices(text) {
+        var items = [];
+        var activeCount = 0;
+        var lines = String(text || "").split("\n");
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (line.length === 0) continue;
+            if (line.indexOf("status=") === 0) {
+                servicesStatus = line.slice(7);
+                continue;
+            }
+
+            var parts = line.split("\t");
+            if (parts.length < 4) continue;
+            var active = parts[1] === "active";
+            if (active) activeCount++;
+            items.push({
+                unit: parts[0],
+                active: active,
+                state: parts[1],
+                subState: parts[2],
+                description: parts[3]
+            });
+        }
+
+        serviceItems = items;
+        if (servicesStatus === "Checking" || servicesStatus === "Ready") {
+            servicesStatus = items.length === 0 ? "No user services" : activeCount + " active / " + items.length;
+        }
+    }
+
+    function restartService(item) {
+        if (!item || !item.unit || servicesBusy) return;
+        servicesBusy = true;
+        servicesStatus = "Restarting " + item.unit;
+        root.bar.showToast("󰒋", "Services", servicesStatus, "info", -1, 1400);
+        servicesCommandProc.command = ["systemctl", "--user", "restart", item.unit];
+        servicesCommandProc.running = true;
+    }
+
     function parseLauncherApps(text) {
         var items = [];
         var seen = ({});
@@ -774,6 +830,9 @@ Item {
         } else if (item.action === "maintenance") {
             root.bar.controlCenterPage = "maintenance";
             refreshMaintenance();
+        } else if (item.action === "services") {
+            root.bar.controlCenterPage = "services";
+            refreshServices();
         } else if (item.action === "game") {
             root.bar.toggleGameMode();
             root.bar.closeControlCenter();
@@ -840,6 +899,7 @@ Item {
             if (visible && root.bar.controlCenterPage === "capture") root.refreshCaptureTools();
             if (visible && root.bar.controlCenterPage === "vpn") root.refreshVpn();
             if (visible && root.bar.controlCenterPage === "maintenance") root.refreshMaintenance();
+            if (visible && root.bar.controlCenterPage === "services") root.refreshServices();
         }
 
         Rectangle {
@@ -967,6 +1027,7 @@ Item {
                                     if (modelData.key === "capture") root.refreshCaptureTools();
                                     if (modelData.key === "vpn") root.refreshVpn();
                                     if (modelData.key === "maintenance") root.refreshMaintenance();
+                                    if (modelData.key === "services") root.refreshServices();
                                 }
                             }
                         }
@@ -2329,6 +2390,180 @@ Item {
                     }
 
                     Column {
+                        visible: root.bar.controlCenterPage === "services"
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 14
+                        spacing: 10
+
+                        RowLayout {
+                            width: parent.width
+                            height: 32
+                            spacing: 8
+
+                            Text {
+                                text: "󰒋"
+                                color: root.bar.networkTextColor
+                                font.family: root.bar.iconFont
+                                font.pixelSize: 16
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Text {
+                                text: root.servicesStatus
+                                color: root.bar.mutedTextColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 12
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                                elide: Text.ElideRight
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 72
+                                Layout.preferredHeight: 30
+                                radius: 15
+                                opacity: root.servicesBusy ? 0.55 : 1
+                                color: servicesRefreshMouse.containsMouse && !root.servicesBusy ? root.bar.activePillColor : root.bar.pillColor
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: root.servicesBusy ? "Busy" : "Refresh"
+                                    color: root.bar.textColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 11
+                                }
+
+                                MouseArea {
+                                    id: servicesRefreshMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: root.refreshServices()
+                                }
+                            }
+                        }
+
+                        Text {
+                            width: parent.width
+                            text: "只管理 systemd --user 会话服务；系统级服务不在这里重启"
+                            color: root.bar.mutedTextColor
+                            font.family: root.bar.barFont
+                            font.pixelSize: 11
+                            wrapMode: Text.WordWrap
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: root.serviceItems.length === 0
+                            text: root.servicesStatus === "Ready" ? "No user services" : root.servicesStatus
+                            color: root.bar.mutedTextColor
+                            font.family: root.bar.barFont
+                            font.pixelSize: 13
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+
+                        Flickable {
+                            width: parent.width
+                            height: 222
+                            contentWidth: width
+                            contentHeight: servicesList.implicitHeight
+                            clip: true
+                            visible: root.serviceItems.length > 0
+
+                            Column {
+                                id: servicesList
+                                width: parent.width
+                                spacing: 8
+
+                                Repeater {
+                                    model: root.serviceItems
+
+                                    Rectangle {
+                                        id: serviceCard
+                                        property bool serviceAvailable: modelData.state !== "missing"
+                                        width: servicesList.width
+                                        height: 58
+                                        radius: 16
+                                        opacity: root.servicesBusy ? 0.6 : 1
+                                        color: serviceItemMouse.containsMouse && !root.servicesBusy ? root.bar.activePillColor : root.bar.pillColor
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 12
+                                            spacing: 10
+
+                                            Text {
+                                                text: modelData.active ? "󰄬" : "󰅖"
+                                                color: modelData.active ? root.bar.networkTextColor : root.bar.mutedTextColor
+                                                font.family: root.bar.iconFont
+                                                font.pixelSize: 15
+                                                Layout.alignment: Qt.AlignVCenter
+                                            }
+
+                                            Column {
+                                                Layout.fillWidth: true
+                                                Layout.alignment: Qt.AlignVCenter
+                                                spacing: 2
+
+                                                Text {
+                                                    width: parent.width
+                                                    text: modelData.unit
+                                                    color: root.bar.textColor
+                                                    font.family: root.bar.barFont
+                                                    font.pixelSize: 12
+                                                    elide: Text.ElideRight
+                                                }
+
+                                                Text {
+                                                    width: parent.width
+                                                    text: modelData.state + " / " + modelData.subState + " · " + modelData.description
+                                                    color: root.bar.mutedTextColor
+                                                    font.family: root.bar.barFont
+                                                    font.pixelSize: 10
+                                                    elide: Text.ElideRight
+                                                }
+                                            }
+
+                                            Rectangle {
+                                                Layout.preferredWidth: 74
+                                                Layout.preferredHeight: 30
+                                                radius: 15
+                                                opacity: serviceCard.serviceAvailable ? 1 : 0.45
+                                                color: serviceRestartMouse.containsMouse && !root.servicesBusy && serviceCard.serviceAvailable ? root.bar.sectionPillColor : "transparent"
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: serviceCard.serviceAvailable ? "Restart" : "--"
+                                                    color: root.bar.mutedTextColor
+                                                    font.family: root.bar.barFont
+                                                    font.pixelSize: 10
+                                                }
+
+                                                MouseArea {
+                                                    id: serviceRestartMouse
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    onClicked: {
+                                                        if (serviceCard.serviceAvailable) root.restartService(modelData);
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: serviceItemMouse
+                                            anchors.fill: parent
+                                            anchors.rightMargin: 86
+                                            hoverEnabled: true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Column {
                         visible: root.bar.controlCenterPage === "vpn"
                         anchors.left: parent.left
                         anchors.right: parent.right
@@ -2934,6 +3169,43 @@ Item {
         interval: 900
         repeat: false
         onTriggered: root.refreshMaintenance()
+    }
+
+    Process {
+        id: servicesListProc
+        command: ["sh", "-c", "if ! command -v systemctl >/dev/null 2>&1; then printf 'status=systemctl unavailable\\n'; exit 0; fi; units='pipewire.service pipewire-pulse.service wireplumber.service xdg-desktop-portal.service xdg-desktop-portal-hyprland.service fcitx5.service'; for unit in $units; do state=$(systemctl --user is-active \"$unit\" 2>/dev/null || true); [ -n \"$state\" ] || state=missing; sub=$(systemctl --user show \"$unit\" -p SubState --value 2>/dev/null || true); [ -n \"$sub\" ] || sub=missing; desc=$(systemctl --user show \"$unit\" -p Description --value 2>/dev/null || true); [ -n \"$desc\" ] || desc=\"$unit\"; printf '%s\\t%s\\t%s\\t%s\\n' \"$unit\" \"$state\" \"$sub\" \"$desc\"; done; printf 'status=Ready\\n'"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: root.parseServices(text)
+        }
+
+        onExited: function(exitCode) {
+            root.servicesBusy = false;
+            if (exitCode !== 0) {
+                root.serviceItems = [];
+                root.servicesStatus = "Service check failed";
+                root.bar.showToast("󰒋", "Services", root.servicesStatus, "error", -1, 1600);
+            }
+        }
+    }
+
+    Process {
+        id: servicesCommandProc
+        command: ["sh", "-c", "true"]
+        onExited: function(exitCode) {
+            root.servicesBusy = false;
+            root.servicesStatus = exitCode === 0 ? "Restart sent" : "Restart failed";
+            root.bar.showToast("󰒋", "Services", root.servicesStatus, exitCode === 0 ? "success" : "error", -1, 1500);
+            servicesRefreshDelay.restart();
+        }
+    }
+
+    Timer {
+        id: servicesRefreshDelay
+        interval: 900
+        repeat: false
+        onTriggered: root.refreshServices()
     }
 
     Process {
