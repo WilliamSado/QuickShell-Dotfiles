@@ -120,6 +120,7 @@ Item {
                             { icon: "󰄱", label: "Todo", sub: (root.bar.todoItems || []).length + " items", action: "todo", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "todo" },
                             { icon: "", label: "Capture", sub: "Screenshot", action: "capture", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "capture" },
                             { icon: "󰖯", label: "Windows", sub: "Manager", action: "windows", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "windows" },
+                            { icon: "󰹑", label: "Scratch", sub: "Special ws", action: "scratch", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "scratch" },
                             { icon: "󰖂", label: "VPN", sub: "Tunnels", action: "vpn", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "vpn" },
                             { icon: "󰏖", label: "Maintain", sub: "Updates", action: "maintenance", active: root.bar.controlCenterOpen && root.bar.controlCenterPage === "maintenance" },
                             { icon: "󰒲", label: "Focus", sub: root.bar.focusModeEnabled ? "DND on" : "Off", action: "focus", active: root.bar.focusModeEnabled },
@@ -189,6 +190,7 @@ Item {
                                     else if (modelData.action === "todo") root.bar.openControlCenterFromQuickSettings("todo");
                                     else if (modelData.action === "capture") root.bar.openControlCenterFromQuickSettings("capture");
                                     else if (modelData.action === "windows") root.bar.openControlCenterFromQuickSettings("windows");
+                                    else if (modelData.action === "scratch") root.bar.openControlCenterFromQuickSettings("scratch");
                                     else if (modelData.action === "vpn") root.bar.openControlCenterFromQuickSettings("vpn");
                                     else if (modelData.action === "maintenance") root.bar.openControlCenterFromQuickSettings("maintenance");
                                     else if (modelData.action === "focus") root.bar.openControlCenterFromQuickSettings("focus");

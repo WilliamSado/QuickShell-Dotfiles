@@ -19,6 +19,7 @@ Item {
     property string windowFilter: "all"
     property int activeWorkspaceId: -1
     property string windowStatus: "Ready"
+    property string scratchStatus: "Ready"
     property string maintenanceStatus: "Ready"
     property string maintenanceUpdates: "--"
     property string maintenanceAurUpdates: "--"
@@ -43,6 +44,7 @@ Item {
         { type: "builtin", icon: "", name: "Clipboard", sub: "Clipboard history", action: "clipboard" },
         { type: "builtin", icon: "󰄱", name: "Todo", sub: "Quick tasks", action: "todo" },
         { type: "builtin", icon: "󰖯", name: "Windows", sub: "Window manager", action: "windows" },
+        { type: "builtin", icon: "󰹑", name: "Scratchpad", sub: "Special workspace", action: "scratch" },
         { type: "builtin", icon: "󰖂", name: "VPN", sub: "Network tunnel", action: "vpn" },
         { type: "builtin", icon: "󰏖", name: "Maintenance", sub: "Updates / cache", action: "maintenance" },
         { type: "builtin", icon: "󰊴", name: "Game Mode", sub: "Performance focus", action: "game" },
@@ -70,6 +72,8 @@ Item {
                 root.refreshCaptureTools();
             } else if (root.bar.controlCenterPage === "windows") {
                 root.refreshWindows();
+            } else if (root.bar.controlCenterPage === "scratch") {
+                root.refreshWindows();
             } else if (root.bar.controlCenterPage === "vpn") {
                 root.refreshVpn();
             } else if (root.bar.controlCenterPage === "maintenance") {
@@ -84,6 +88,7 @@ Item {
         { key: "todo", label: "Todo", icon: "󰄱" },
         { key: "capture", label: "Shot", icon: "" },
         { key: "windows", label: "Win", icon: "󰖯" },
+        { key: "scratch", label: "Pad", icon: "󰹑" },
         { key: "vpn", label: "VPN", icon: "󰖂" },
         { key: "maintenance", label: "Clean", icon: "󰏖" },
         { key: "focus", label: "Focus", icon: "󰒲" }
@@ -113,6 +118,7 @@ Item {
         if (root.bar.controlCenterPage === "todo") return 310;
         if (root.bar.controlCenterPage === "capture") return 292;
         if (root.bar.controlCenterPage === "windows") return 350;
+        if (root.bar.controlCenterPage === "scratch") return 310;
         if (root.bar.controlCenterPage === "vpn") return 310;
         if (root.bar.controlCenterPage === "maintenance") return 310;
         if (root.bar.controlCenterPage === "focus") return 260;
@@ -334,6 +340,14 @@ Item {
         });
     }
 
+    function scratchWindowItems() {
+        return windowItems.filter(function(window) {
+            if (!window || !window.workspace) return false;
+            var name = String(window.workspace.name || "");
+            return name.indexOf("special") === 0 || window.workspace.id < 0;
+        });
+    }
+
     function windowName(window) {
         if (!window) return "Window";
         var title = String(window.title || "").trim();
@@ -389,6 +403,36 @@ Item {
     function toggleWindowPin(window) {
         if (!window || !window.address) return;
         runWindowCommand("hyprctl dispatch focuswindow address:" + shellQuote(window.address) + "; hyprctl dispatch pin", "Pin toggled", false);
+    }
+
+    function toggleScratchpad() {
+        scratchStatus = "Toggled";
+        root.bar.showToast("󰹑", "Scratchpad", "Toggle special workspace", "info", -1, 1200);
+        scratchCommandProc.command = ["hyprctl", "dispatch", "togglespecialworkspace", "scratch"];
+        scratchCommandProc.running = true;
+    }
+
+    function moveActiveToScratchpad() {
+        scratchStatus = "Moving active window";
+        root.bar.showToast("󰹑", "Scratchpad", scratchStatus, "info", -1, 1200);
+        scratchCommandProc.command = ["hyprctl", "dispatch", "movetoworkspacesilent", "special:scratch"];
+        scratchCommandProc.running = true;
+    }
+
+    function moveScratchWindowToCurrent(window) {
+        if (!window || !window.address) return;
+        scratchStatus = "Moving window back";
+        root.bar.showToast("󰹑", "Scratchpad", scratchStatus, "info", -1, 1200);
+        scratchCommandProc.command = ["sh", "-c", "ws=$(hyprctl activeworkspace -j | jq -r '.id'); hyprctl dispatch movetoworkspacesilent \"$ws,address:" + window.address + "\""];
+        scratchCommandProc.running = true;
+    }
+
+    function focusScratchWindow(window) {
+        if (!window || !window.address) return;
+        scratchStatus = "Focusing";
+        root.bar.showToast("󰹑", "Scratchpad", scratchStatus, "info", -1, 1000);
+        scratchCommandProc.command = ["hyprctl", "dispatch", "focuswindow", "address:" + window.address];
+        scratchCommandProc.running = true;
     }
 
     function refreshLauncher() {
@@ -721,6 +765,9 @@ Item {
         } else if (item.action === "windows") {
             root.bar.controlCenterPage = "windows";
             refreshWindows();
+        } else if (item.action === "scratch") {
+            root.bar.controlCenterPage = "scratch";
+            refreshWindows();
         } else if (item.action === "vpn") {
             root.bar.controlCenterPage = "vpn";
             refreshVpn();
@@ -789,6 +836,7 @@ Item {
             if (visible && root.bar.controlCenterPage === "todo") Qt.callLater(function() { todoInputField.forceActiveFocus(); });
             if (visible && root.bar.controlCenterPage === "clipboard") root.refreshClipboard();
             if (visible && root.bar.controlCenterPage === "windows") root.refreshWindows();
+            if (visible && root.bar.controlCenterPage === "scratch") root.refreshWindows();
             if (visible && root.bar.controlCenterPage === "capture") root.refreshCaptureTools();
             if (visible && root.bar.controlCenterPage === "vpn") root.refreshVpn();
             if (visible && root.bar.controlCenterPage === "maintenance") root.refreshMaintenance();
@@ -892,6 +940,7 @@ Item {
 
                                 Text {
                                     text: modelData.label
+                                    visible: root.pages.length <= 7
                                     color: root.bar.textColor
                                     font.family: root.bar.barFont
                                     font.pixelSize: 11
@@ -914,6 +963,7 @@ Item {
                                     if (modelData.key === "todo") Qt.callLater(function() { todoInputField.forceActiveFocus(); });
                                     if (modelData.key === "clipboard") root.refreshClipboard();
                                     if (modelData.key === "windows") root.refreshWindows();
+                                    if (modelData.key === "scratch") root.refreshWindows();
                                     if (modelData.key === "capture") root.refreshCaptureTools();
                                     if (modelData.key === "vpn") root.refreshVpn();
                                     if (modelData.key === "maintenance") root.refreshMaintenance();
@@ -930,7 +980,7 @@ Item {
                     color: root.bar.sectionPillColor
 
                     Column {
-                        visible: root.bar.controlCenterPage !== "focus" && root.bar.controlCenterPage !== "clipboard" && root.bar.controlCenterPage !== "todo" && root.bar.controlCenterPage !== "capture" && root.bar.controlCenterPage !== "windows" && root.bar.controlCenterPage !== "vpn" && root.bar.controlCenterPage !== "maintenance" && root.bar.controlCenterPage !== "launcher"
+                        visible: root.bar.controlCenterPage !== "focus" && root.bar.controlCenterPage !== "clipboard" && root.bar.controlCenterPage !== "todo" && root.bar.controlCenterPage !== "capture" && root.bar.controlCenterPage !== "windows" && root.bar.controlCenterPage !== "scratch" && root.bar.controlCenterPage !== "vpn" && root.bar.controlCenterPage !== "maintenance" && root.bar.controlCenterPage !== "launcher"
                         anchors.centerIn: parent
                         spacing: 8
 
@@ -1307,6 +1357,241 @@ Item {
                                             anchors.bottom: parent.bottom
                                             hoverEnabled: true
                                             onClicked: root.focusWindow(modelData)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Column {
+                        visible: root.bar.controlCenterPage === "scratch"
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 14
+                        spacing: 10
+
+                        RowLayout {
+                            width: parent.width
+                            height: 32
+                            spacing: 8
+
+                            Text {
+                                text: "󰹑"
+                                color: root.bar.networkTextColor
+                                font.family: root.bar.iconFont
+                                font.pixelSize: 16
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Text {
+                                text: root.scratchWindowItems().length + " scratch windows"
+                                color: root.bar.mutedTextColor
+                                font.family: root.bar.barFont
+                                font.pixelSize: 12
+                                Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
+                                elide: Text.ElideRight
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: 72
+                                Layout.preferredHeight: 30
+                                radius: 15
+                                color: scratchRefreshMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "Refresh"
+                                    color: root.bar.textColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 11
+                                }
+
+                                MouseArea {
+                                    id: scratchRefreshMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: root.refreshWindows()
+                                }
+                            }
+                        }
+
+                        Grid {
+                            width: parent.width
+                            columns: 2
+                            rowSpacing: 10
+                            columnSpacing: 10
+
+                            Repeater {
+                                model: [
+                                    { icon: "󰹑", label: "Toggle pad", sub: "Show / hide", action: "toggle" },
+                                    { icon: "󰍉", label: "Send active", sub: "Move focused window", action: "send" }
+                                ]
+
+                                Rectangle {
+                                    width: (parent.width - 10) / 2
+                                    height: 58
+                                    radius: 16
+                                    color: scratchActionMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: 12
+                                        spacing: 10
+
+                                        Text {
+                                            text: modelData.icon
+                                            color: root.bar.textColor
+                                            font.family: root.bar.iconFont
+                                            font.pixelSize: 16
+                                            Layout.alignment: Qt.AlignVCenter
+                                        }
+
+                                        Column {
+                                            Layout.fillWidth: true
+                                            Layout.alignment: Qt.AlignVCenter
+                                            spacing: 2
+
+                                            Text {
+                                                width: parent.width
+                                                text: modelData.label
+                                                color: root.bar.textColor
+                                                font.family: root.bar.barFont
+                                                font.pixelSize: 12
+                                                elide: Text.ElideRight
+                                            }
+
+                                            Text {
+                                                width: parent.width
+                                                text: modelData.sub
+                                                color: root.bar.mutedTextColor
+                                                font.family: root.bar.barFont
+                                                font.pixelSize: 10
+                                                elide: Text.ElideRight
+                                            }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: scratchActionMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        onClicked: {
+                                            if (modelData.action === "toggle") root.toggleScratchpad();
+                                            else if (modelData.action === "send") root.moveActiveToScratchpad();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: root.scratchWindowItems().length === 0
+                            text: "No scratchpad windows"
+                            color: root.bar.mutedTextColor
+                            font.family: root.bar.barFont
+                            font.pixelSize: 13
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+
+                        Flickable {
+                            width: parent.width
+                            height: 174
+                            contentWidth: width
+                            contentHeight: scratchList.implicitHeight
+                            clip: true
+                            visible: root.scratchWindowItems().length > 0
+
+                            Column {
+                                id: scratchList
+                                width: parent.width
+                                spacing: 8
+
+                                Repeater {
+                                    model: root.scratchWindowItems()
+
+                                    Rectangle {
+                                        id: scratchCard
+                                        property var windowData: modelData
+
+                                        width: scratchList.width
+                                        height: 58
+                                        radius: 15
+                                        color: scratchItemMouse.containsMouse ? root.bar.activePillColor : root.bar.pillColor
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 12
+                                            spacing: 10
+
+                                            Text {
+                                                text: "󰖯"
+                                                color: root.bar.textColor
+                                                font.family: root.bar.iconFont
+                                                font.pixelSize: 15
+                                                Layout.alignment: Qt.AlignVCenter
+                                            }
+
+                                            Column {
+                                                Layout.fillWidth: true
+                                                Layout.alignment: Qt.AlignVCenter
+                                                spacing: 2
+
+                                                Text {
+                                                    width: parent.width
+                                                    text: root.windowName(modelData)
+                                                    color: root.bar.textColor
+                                                    font.family: root.bar.barFont
+                                                    font.pixelSize: 12
+                                                    elide: Text.ElideRight
+                                                }
+
+                                                Text {
+                                                    width: parent.width
+                                                    text: root.windowSubtext(modelData)
+                                                    color: root.bar.mutedTextColor
+                                                    font.family: root.bar.barFont
+                                                    font.pixelSize: 10
+                                                    elide: Text.ElideRight
+                                                }
+                                            }
+
+                                            Rectangle {
+                                                Layout.preferredWidth: 30
+                                                Layout.preferredHeight: 30
+                                                radius: 15
+                                                color: scratchMoveMouse.containsMouse ? root.bar.sectionPillColor : "transparent"
+                                                Layout.alignment: Qt.AlignVCenter
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: "󰍉"
+                                                    color: root.bar.textColor
+                                                    font.family: root.bar.iconFont
+                                                    font.pixelSize: 12
+                                                }
+
+                                                MouseArea {
+                                                    id: scratchMoveMouse
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    onClicked: root.moveScratchWindowToCurrent(scratchCard.windowData)
+                                                }
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: scratchItemMouse
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                            anchors.top: parent.top
+                                            anchors.bottom: parent.bottom
+                                            anchors.rightMargin: 44
+                                            hoverEnabled: true
+                                            onClicked: root.focusScratchWindow(modelData)
                                         }
                                     }
                                 }
@@ -2451,6 +2736,16 @@ Item {
             } else {
                 root.bar.showToast("󰖯", "Window", root.windowStatus, "success", -1, 1300);
             }
+            refreshWindowsTimer.restart();
+        }
+    }
+
+    Process {
+        id: scratchCommandProc
+        command: ["sh", "-c", "true"]
+        onExited: function(exitCode) {
+            root.scratchStatus = exitCode === 0 ? "Done" : "Scratch action failed";
+            root.bar.showToast("󰹑", "Scratchpad", root.scratchStatus, exitCode === 0 ? "success" : "error", -1, 1300);
             refreshWindowsTimer.restart();
         }
     }
