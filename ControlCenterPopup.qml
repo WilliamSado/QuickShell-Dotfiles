@@ -33,6 +33,7 @@ Item {
     property bool servicesBusy: false
     property var keybindItems: []
     property string keybindsStatus: "Ready"
+    property string keybindQuery: ""
     property string todoInput: ""
     property var launcherApps: []
     property string launcherQuery: ""
@@ -89,6 +90,7 @@ Item {
                 root.refreshServices();
             } else if (root.bar.controlCenterPage === "keybinds") {
                 root.refreshKeybinds();
+                Qt.callLater(function() { keybindSearch.forceActiveFocus(); });
             }
         }
     }
@@ -135,7 +137,7 @@ Item {
         if (root.bar.controlCenterPage === "vpn") return 310;
         if (root.bar.controlCenterPage === "maintenance") return 310;
         if (root.bar.controlCenterPage === "services") return 310;
-        if (root.bar.controlCenterPage === "keybinds") return 330;
+        if (root.bar.controlCenterPage === "keybinds") return 372;
         if (root.bar.controlCenterPage === "focus") return 330;
         return 170;
     }
@@ -677,6 +679,19 @@ Item {
         keybindsStatus = items.length > 0 ? items.length + " shortcuts" : "No keybinds";
     }
 
+    function filteredKeybindItems() {
+        var query = keybindQuery.toLowerCase().trim();
+        if (query.length === 0) return keybindItems;
+
+        var items = [];
+        for (var i = 0; i < keybindItems.length; i++) {
+            var item = keybindItems[i];
+            var haystack = (item.combo + " " + item.group + " " + item.action + " " + item.args).toLowerCase();
+            if (haystack.indexOf(query) >= 0) items.push(item);
+        }
+        return items;
+    }
+
     function parseLauncherApps(text) {
         var items = [];
         var seen = ({});
@@ -913,6 +928,7 @@ Item {
         } else if (item.action === "keybinds") {
             root.bar.controlCenterPage = "keybinds";
             refreshKeybinds();
+            Qt.callLater(function() { keybindSearch.forceActiveFocus(); });
         } else if (item.action === "game") {
             root.bar.toggleGameMode();
             root.bar.closeControlCenter();
@@ -973,7 +989,7 @@ Item {
         relativeX: Math.max(root.bar.barSideMargin, root.bar.width - implicitWidth - root.bar.barSideMargin)
         relativeY: root.bar.implicitHeight + 22
         color: "transparent"
-        grabFocus: root.bar.controlCenterOpen && (root.bar.controlCenterPage === "launcher" || root.bar.controlCenterPage === "todo")
+        grabFocus: root.bar.controlCenterOpen && (root.bar.controlCenterPage === "launcher" || root.bar.controlCenterPage === "todo" || root.bar.controlCenterPage === "keybinds")
         onClosed: root.bar.closeControlCenter()
         onVisibleChanged: {
             if (visible && root.bar.controlCenterPage === "launcher") {
@@ -989,7 +1005,10 @@ Item {
             if (visible && root.bar.controlCenterPage === "vpn") root.refreshVpn();
             if (visible && root.bar.controlCenterPage === "maintenance") root.refreshMaintenance();
             if (visible && root.bar.controlCenterPage === "services") root.refreshServices();
-            if (visible && root.bar.controlCenterPage === "keybinds") root.refreshKeybinds();
+            if (visible && root.bar.controlCenterPage === "keybinds") {
+                root.refreshKeybinds();
+                Qt.callLater(function() { keybindSearch.forceActiveFocus(); });
+            }
         }
 
         Rectangle {
@@ -1118,7 +1137,10 @@ Item {
                                     if (modelData.key === "vpn") root.refreshVpn();
                                     if (modelData.key === "maintenance") root.refreshMaintenance();
                                     if (modelData.key === "services") root.refreshServices();
-                                    if (modelData.key === "keybinds") root.refreshKeybinds();
+                                    if (modelData.key === "keybinds") {
+                                        root.refreshKeybinds();
+                                        Qt.callLater(function() { keybindSearch.forceActiveFocus(); });
+                                    }
                                 }
                             }
                         }
@@ -2566,10 +2588,60 @@ Item {
                             wrapMode: Text.WordWrap
                         }
 
+                        Rectangle {
+                            width: parent.width
+                            height: 38
+                            radius: 17
+                            color: root.bar.pillColor
+                            border.color: keybindSearch.activeFocus ? root.bar.networkTextColor : "transparent"
+                            border.width: keybindSearch.activeFocus ? 1 : 0
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 10
+                                spacing: 8
+
+                                Text {
+                                    text: ""
+                                    color: root.bar.mutedTextColor
+                                    font.family: root.bar.iconFont
+                                    font.pixelSize: 13
+                                    Layout.alignment: Qt.AlignVCenter
+                                }
+
+                                TextInput {
+                                    id: keybindSearch
+                                    Layout.fillWidth: true
+                                    Layout.alignment: Qt.AlignVCenter
+                                    text: root.keybindQuery
+                                    color: root.bar.textColor
+                                    selectionColor: root.bar.activePillColor
+                                    selectedTextColor: root.bar.textColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 12
+                                    clip: true
+                                    onTextChanged: root.keybindQuery = text
+                                    Keys.onEscapePressed: {
+                                        if (root.keybindQuery.length > 0) root.keybindQuery = "";
+                                        else root.bar.closeControlCenter();
+                                    }
+                                }
+
+                                Text {
+                                    text: root.filteredKeybindItems().length + "/" + root.keybindItems.length
+                                    color: root.bar.mutedTextColor
+                                    font.family: root.bar.barFont
+                                    font.pixelSize: 10
+                                    Layout.alignment: Qt.AlignVCenter
+                                }
+                            }
+                        }
+
                         Text {
                             width: parent.width
-                            visible: root.keybindItems.length === 0
-                            text: root.keybindsStatus
+                            visible: root.filteredKeybindItems().length === 0
+                            text: root.keybindItems.length === 0 ? root.keybindsStatus : "No matching keybinds"
                             color: root.bar.mutedTextColor
                             font.family: root.bar.barFont
                             font.pixelSize: 13
@@ -2582,7 +2654,7 @@ Item {
                             contentWidth: width
                             contentHeight: keybindsList.implicitHeight
                             clip: true
-                            visible: root.keybindItems.length > 0
+                            visible: root.filteredKeybindItems().length > 0
 
                             Column {
                                 id: keybindsList
@@ -2590,7 +2662,7 @@ Item {
                                 spacing: 8
 
                                 Repeater {
-                                    model: root.keybindItems
+                                    model: root.filteredKeybindItems()
 
                                     Rectangle {
                                         width: keybindsList.width
