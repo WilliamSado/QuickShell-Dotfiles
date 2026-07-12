@@ -154,6 +154,8 @@ PanelWindow {
     property var todoItems: []
     property bool focusDimNotifications: false
     property string captureLastPath: ""
+    property string captureStatus: "Ready"
+    property string capturePendingPath: ""
     property bool controlCenterCaptureBusy: false
     property var notificationHistory: []
     property int unreadNotifications: 0
@@ -710,6 +712,15 @@ PanelWindow {
 
     function shellQuote(value) {
         return "'" + String(value).replace(/'/g, "'\\''") + "'";
+    }
+
+    function runCaptureCommand(command, status, path) {
+        captureStatus = status || "Running";
+        capturePendingPath = path || "";
+        closeControlCenter();
+        showToast("", "Capture", captureStatus, "info", -1, 1200);
+        captureProc.command = ["sh", "-c", "sleep " + (Math.max(popupAnimationMs + 140, 360) / 1000).toFixed(2) + "; " + command + " 2>/tmp/quickshell-capture.log"];
+        captureProc.running = true;
     }
 
     function showToast(icon, title, message, level, progress, durationMs) {
@@ -1578,6 +1589,24 @@ PanelWindow {
                 }
                 translationVersion++;
             }
+        }
+    }
+
+    Process {
+        id: captureProc
+        command: ["sh", "-c", "true"]
+        onExited: function(exitCode) {
+            if (exitCode !== 0) {
+                captureStatus = "Capture failed";
+                showToast("", "Capture", captureStatus + " · /tmp/quickshell-capture.log", "error", -1, 2200);
+            } else if (capturePendingPath.length > 0) {
+                captureLastPath = capturePendingPath;
+                persistSettings();
+                showToast("", "Capture", capturePendingPath.replace(/^.*\//, ""), "success", -1, 1700);
+            } else {
+                showToast("", "Capture", captureStatus, "success", -1, 1400);
+            }
+            capturePendingPath = "";
         }
     }
 
