@@ -3139,7 +3139,7 @@ PanelWindow {
                 Flickable {
                     id: bluetoothDeviceFlick
                     width: parent.width
-                    height: Math.min(bluetoothDeviceList.implicitHeight, 5 * 34)
+                    height: Math.min(bluetoothDeviceList.implicitHeight, 5 * 34 + 4 * 6)
                     contentWidth: width
                     contentHeight: bluetoothDeviceList.implicitHeight
                     clip: true
@@ -3171,6 +3171,7 @@ PanelWindow {
                     Column {
                         id: bluetoothDeviceList
                         width: bluetoothDeviceFlick.width
+                        spacing: 6
 
                         Repeater {
                             model: Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.enabled ? Bluetooth.defaultAdapter.devices.values : []
@@ -4309,7 +4310,7 @@ PanelWindow {
                     Flickable {
                         id: wifiNetworkFlick
                         width: parent.width
-                        height: Math.min(wifiNetworkList.implicitHeight, 5 * 34)
+                        height: Math.min(wifiNetworkList.implicitHeight, 5 * 34 + 4 * 6)
                         contentWidth: width
                         contentHeight: wifiNetworkList.implicitHeight
                         clip: true
@@ -4343,6 +4344,7 @@ PanelWindow {
                         Column {
                             id: wifiNetworkList
                             width: wifiNetworkFlick.width
+                            spacing: 6
 
                             Repeater {
                                 model: wifiNetworksForDevice(networkPopupColumn.device)
