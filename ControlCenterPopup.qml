@@ -241,9 +241,8 @@ Item {
 
     function copyClipboardItem(line) {
         if (!line) return;
-        clipboardStatus = "Copied";
-        root.bar.showToast("", "Clipboard", "Item copied", "success", -1, 1200);
-        clipboardCopyProc.command = ["sh", "-c", "printf '%s' " + shellQuote(line) + " | cliphist decode | wl-copy"];
+        clipboardStatus = "Copying";
+        clipboardCopyProc.command = ["sh", "-c", "tmp=$(mktemp); printf '%s\\n' " + shellQuote(line) + " > \"$tmp\" && cliphist decode < \"$tmp\" | wl-copy; code=$?; rm -f \"$tmp\"; exit $code"];
         clipboardCopyProc.running = true;
     }
 
@@ -3430,6 +3429,10 @@ Item {
     Process {
         id: clipboardCopyProc
         command: ["sh", "-c", "true"]
+        onExited: function(exitCode) {
+            clipboardStatus = exitCode === 0 ? "Copied" : "Copy failed";
+            root.bar.showToast("", "Clipboard", clipboardStatus, exitCode === 0 ? "success" : "error", -1, 1400);
+        }
     }
 
     Process {

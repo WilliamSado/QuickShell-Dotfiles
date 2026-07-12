@@ -135,6 +135,7 @@ PanelWindow {
     property string appAudioStatus: "Ready"
     property bool appAudioExpanded: false
     property bool appAudioScanInStreams: false
+    property string appAudioBackend: "wpctl"
     property string performanceText: "--"
     property string temperatureText: "--"
     property string processText: "--"
@@ -1903,11 +1904,32 @@ PanelWindow {
         appAudioStatus = "Loading";
         appAudioStreams = [];
         appAudioScanInStreams = false;
+        appAudioBackend = "wpctl";
+        appAudioProc.command = ["sh", "/home/sado/.config/quickshell/scripts/app-audio-list.sh"];
         appAudioProc.running = true;
     }
 
     function parseAppAudioLine(line) {
         var clean = line.trim();
+        if (clean.indexOf("APPACTL\t") === 0) {
+            var parts = clean.split("\t");
+            if (parts.length < 5) return;
+
+            var pactlPercent = Math.max(0, Math.min(100, parseInt(parts[2]) || 100));
+            var pactlStreams = appAudioStreams.slice();
+            pactlStreams.push({
+                id: parts[1],
+                backend: "pactl",
+                name: parts.slice(4).join("\t") || "App audio",
+                percent: pactlPercent,
+                muted: parts[3] === "true"
+            });
+            appAudioStreams = pactlStreams;
+            appAudioBackend = "pactl";
+            appAudioStatus = pactlStreams.length + " streams";
+            return;
+        }
+
         if (clean.match(/^Streams:/)) {
             appAudioScanInStreams = true;
             return;
@@ -1928,6 +1950,7 @@ PanelWindow {
         var streams = appAudioStreams.slice();
         streams.push({
             id: match[1],
+            backend: "wpctl",
             name: name.length > 0 ? name : "Audio stream",
             percent: Math.max(0, Math.min(100, percent)),
             muted: clean.indexOf("MUTED") !== -1
@@ -1940,7 +1963,11 @@ PanelWindow {
         if (!stream || stream.id === undefined) return;
         var clamped = Math.max(0, Math.min(100, Math.round(percent)));
         showToast("󰝚", stream.name || "App audio", clamped + "%", "info", clamped / 100, 900);
-        appAudioSetProc.command = ["wpctl", "set-volume", String(stream.id), (clamped / 100).toFixed(2)];
+        if (stream.backend === "pactl") {
+            appAudioSetProc.command = ["pactl", "set-sink-input-volume", String(stream.id), clamped + "%"];
+        } else {
+            appAudioSetProc.command = ["wpctl", "set-volume", String(stream.id), (clamped / 100).toFixed(2)];
+        }
         appAudioSetProc.running = true;
     }
 
@@ -1952,7 +1979,11 @@ PanelWindow {
     function toggleAppAudioMute(stream) {
         if (!stream || stream.id === undefined) return;
         showToast(stream.muted ? "󰝝" : "󰝟", stream.name || "App audio", stream.muted ? "Unmuting" : "Muting", "info", -1, 900);
-        appAudioMuteProc.command = ["wpctl", "set-mute", String(stream.id), "toggle"];
+        if (stream.backend === "pactl") {
+            appAudioMuteProc.command = ["pactl", "set-sink-input-mute", String(stream.id), "toggle"];
+        } else {
+            appAudioMuteProc.command = ["wpctl", "set-mute", String(stream.id), "toggle"];
+        }
         appAudioMuteProc.running = true;
     }
 
@@ -2081,7 +2112,7 @@ PanelWindow {
 
     Process {
         id: appAudioProc
-        command: ["wpctl", "status"]
+        command: ["sh", "/home/sado/.config/quickshell/scripts/app-audio-list.sh"]
         stdout: SplitParser {
             onRead: function(data) {
                 parseAppAudioLine(data);
