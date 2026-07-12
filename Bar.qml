@@ -3157,17 +3157,6 @@ PanelWindow {
                         }
                     }
 
-                    Rectangle {
-                        width: 3
-                        radius: 2
-                        anchors.right: parent.right
-                        anchors.rightMargin: 1
-                        y: bluetoothDeviceFlick.visibleArea.yPosition * bluetoothDeviceFlick.height
-                        height: Math.max(18, bluetoothDeviceFlick.visibleArea.heightRatio * bluetoothDeviceFlick.height)
-                        color: mutedTextColor
-                        opacity: bluetoothDeviceFlick.contentHeight > bluetoothDeviceFlick.height ? 0.45 : 0
-                    }
-
                     Column {
                         id: bluetoothDeviceList
                         width: bluetoothDeviceFlick.width
@@ -4328,17 +4317,6 @@ PanelWindow {
                                 ));
                                 event.accepted = true;
                             }
-                        }
-
-                        Rectangle {
-                            width: 3
-                            radius: 2
-                            anchors.right: parent.right
-                            anchors.rightMargin: 1
-                            y: wifiNetworkFlick.visibleArea.yPosition * wifiNetworkFlick.height
-                            height: Math.max(18, wifiNetworkFlick.visibleArea.heightRatio * wifiNetworkFlick.height)
-                            color: mutedTextColor
-                            opacity: wifiNetworkFlick.contentHeight > wifiNetworkFlick.height ? 0.45 : 0
                         }
 
                         Column {
