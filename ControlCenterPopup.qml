@@ -274,6 +274,7 @@ Item {
     function runCapture(command, status, path) {
         captureStatus = status || "Running";
         capturePendingPath = path || "";
+        root.bar.controlCenterCaptureBusy = true;
         root.bar.closeControlCenter();
         root.bar.showToast("", "Capture", status || "Running", "info", -1, 1200);
         captureProc.command = ["sh", "-c", "sleep " + (Math.max(root.bar.popupAnimationMs, 220) / 1000).toFixed(2) + "; " + command + " 2>/tmp/quickshell-capture.log"];
@@ -3459,6 +3460,7 @@ Item {
                 root.bar.showToast("", "Capture", root.captureStatus, "success", -1, 1400);
             }
             root.capturePendingPath = "";
+            root.bar.controlCenterCaptureBusy = false;
         }
     }
 

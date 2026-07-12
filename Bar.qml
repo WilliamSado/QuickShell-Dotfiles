@@ -154,6 +154,7 @@ PanelWindow {
     property var todoItems: []
     property bool focusDimNotifications: false
     property string captureLastPath: ""
+    property bool controlCenterCaptureBusy: false
     property var notificationHistory: []
     property int unreadNotifications: 0
     property int notificationIdCounter: 0
@@ -4933,7 +4934,7 @@ PanelWindow {
 
     Loader {
         id: controlCenterPopup
-        active: controlCenterOpen || controlCenterClosing
+        active: controlCenterOpen || controlCenterClosing || controlCenterCaptureBusy
         sourceComponent: ControlCenterPopup {
             bar: barWindow
         }
