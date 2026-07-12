@@ -14,8 +14,8 @@ Item {
     property bool wallpaperRotationEnabled: false
     property int wallpaperRotationMinutes: 30
     property bool wallpaperRotationRandom: true
-    property int popupAnimationMs: 190
-    property int popupAnimationOffset: 18
+    property int popupAnimationMs: 260
+    property int popupAnimationOffset: 32
     property bool hyprBlurEnabled: true
     property int hyprBlurSize: 8
     property int hyprBlurPasses: 2

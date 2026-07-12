@@ -71,18 +71,18 @@ PanelWindow {
         width: Math.min(numbers.toastWidth, toastWindow.width - 32)
         implicitHeight: toastColumn.implicitHeight + 24
         x: (toastWindow.width - width) / 2
-        y: numbers.toastTopMargin - 14
+        y: numbers.toastTopMargin - 26
         opacity: 0
-        scale: 0.96
+        scale: 0.88
         transformOrigin: Item.Top
         radius: numbers.toastRadius
         color: bar.popupColor
         border.color: bar.popupBorderColor
         border.width: 1
 
-        Behavior on y { SpringAnimation { spring: 3.2; damping: 0.34; epsilon: 0.2 } }
+        Behavior on y { SpringAnimation { spring: 5.4; damping: 0.24; epsilon: 0.12 } }
         Behavior on opacity { NumberAnimation { duration: numbers.toastAnimationMs; easing.type: Easing.OutCubic } }
-        Behavior on scale { SpringAnimation { spring: 3.4; damping: 0.36; epsilon: 0.001 } }
+        Behavior on scale { SpringAnimation { spring: 5.8; damping: 0.25; epsilon: 0.001 } }
 
         Column {
             id: toastColumn

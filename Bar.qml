@@ -1147,8 +1147,8 @@ PanelWindow {
         wallpaperRotationEnabled = settingsStore.wallpaperRotationEnabled;
         wallpaperRotationMinutes = Math.max(1, settingsStore.wallpaperRotationMinutes);
         wallpaperRotationRandom = settingsStore.wallpaperRotationRandom;
-        popupAnimationMs = Math.max(settingsStore.popupAnimationMs, 190);
-        popupAnimationOffset = Math.max(settingsStore.popupAnimationOffset, 18);
+        popupAnimationMs = Math.max(settingsStore.popupAnimationMs, 260);
+        popupAnimationOffset = Math.max(settingsStore.popupAnimationOffset, 32);
         hyprBlurEnabled = settingsStore.hyprBlurEnabled;
         hyprAnimationsEnabled = settingsStore.hyprAnimationsEnabled;
         notificationsDnd = settingsStore.doNotDisturb;
@@ -2520,8 +2520,8 @@ PanelWindow {
                 color: activePillColor
                 visible: workspacePill.activeWorkspaceId >= 1 && workspacePill.activeWorkspaceId <= 10
 
-                Behavior on x { SpringAnimation { spring: 4.2; damping: 0.35; epsilon: 0.15 } }
-                Behavior on color { ColorAnimation { duration: Math.max(120, popupAnimationMs - 40); easing.type: Easing.OutCubic } }
+                Behavior on x { SpringAnimation { spring: 6.2; damping: 0.24; epsilon: 0.08 } }
+                Behavior on color { ColorAnimation { duration: Math.max(160, popupAnimationMs - 40); easing.type: Easing.OutCubic } }
             }
 
             MouseArea {
@@ -2552,7 +2552,7 @@ PanelWindow {
                         color: "transparent"
                         scale: isActive ? 1 : 0.92
 
-                        Behavior on scale { SpringAnimation { spring: 4.6; damping: 0.38; epsilon: 0.001 } }
+                        Behavior on scale { SpringAnimation { spring: 6.8; damping: 0.26; epsilon: 0.001 } }
 
                         Text {
                             anchors.centerIn: parent
@@ -2561,7 +2561,7 @@ PanelWindow {
                             font.family: barFont
                             font.pixelSize: barFontSize
 
-                            Behavior on color { ColorAnimation { duration: Math.max(100, popupAnimationMs - 60); easing.type: Easing.OutCubic } }
+                            Behavior on color { ColorAnimation { duration: Math.max(140, popupAnimationMs - 60); easing.type: Easing.OutCubic } }
                         }
 
                         MouseArea {
@@ -3077,7 +3077,7 @@ PanelWindow {
             width: parent.width
             y: bluetoothPopupOpen ? 0 : -popupAnimationOffset
             opacity: bluetoothPopupOpen ? 1 : 0
-            scale: bluetoothPopupOpen ? 1 : 0.9
+            scale: bluetoothPopupOpen ? 1 : 0.84
             transformOrigin: Item.Top
             implicitHeight: bluetoothPopupColumn.implicitHeight + 24
             radius: 18
@@ -3085,9 +3085,9 @@ PanelWindow {
             border.color: popupBorderColor
             border.width: 1
 
-            Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }
-            Behavior on opacity { NumberAnimation { duration: Math.max(90, popupAnimationMs - 60); easing.type: Easing.OutQuad } }
-            Behavior on scale { SpringAnimation { spring: 3.4; damping: 0.34; epsilon: 0.001 } }
+            Behavior on y { SpringAnimation { spring: 5.0; damping: 0.24; epsilon: 0.12 } }
+            Behavior on opacity { NumberAnimation { duration: Math.max(130, popupAnimationMs - 50); easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { spring: 5.4; damping: 0.25; epsilon: 0.001 } }
 
             Column {
                 id: bluetoothPopupColumn
@@ -3296,7 +3296,7 @@ PanelWindow {
             width: parent.width
             y: powerPopupOpen ? 0 : -popupAnimationOffset
             opacity: powerPopupOpen ? 1 : 0
-            scale: powerPopupOpen ? 1 : 0.9
+            scale: powerPopupOpen ? 1 : 0.84
             transformOrigin: Item.Top
             implicitHeight: powerPopupColumn.implicitHeight + 24
             radius: 18
@@ -3304,9 +3304,9 @@ PanelWindow {
             border.color: popupBorderColor
             border.width: 1
 
-            Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }
-            Behavior on opacity { NumberAnimation { duration: Math.max(90, popupAnimationMs - 60); easing.type: Easing.OutQuad } }
-            Behavior on scale { SpringAnimation { spring: 3.4; damping: 0.34; epsilon: 0.001 } }
+            Behavior on y { SpringAnimation { spring: 5.0; damping: 0.24; epsilon: 0.12 } }
+            Behavior on opacity { NumberAnimation { duration: Math.max(130, popupAnimationMs - 50); easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { spring: 5.4; damping: 0.25; epsilon: 0.001 } }
 
             Column {
                 id: powerPopupColumn
@@ -3486,7 +3486,7 @@ PanelWindow {
             width: parent.width
             y: volumePopupOpen ? 0 : -popupAnimationOffset
             opacity: volumePopupOpen ? 1 : 0
-            scale: volumePopupOpen ? 1 : 0.9
+            scale: volumePopupOpen ? 1 : 0.84
             transformOrigin: Item.Top
             implicitHeight: volumePopupColumn.implicitHeight + 24
             radius: 18
@@ -3494,9 +3494,9 @@ PanelWindow {
             border.color: popupBorderColor
             border.width: 1
 
-            Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }
-            Behavior on opacity { NumberAnimation { duration: Math.max(90, popupAnimationMs - 60); easing.type: Easing.OutQuad } }
-            Behavior on scale { SpringAnimation { spring: 3.4; damping: 0.34; epsilon: 0.001 } }
+            Behavior on y { SpringAnimation { spring: 5.0; damping: 0.24; epsilon: 0.12 } }
+            Behavior on opacity { NumberAnimation { duration: Math.max(130, popupAnimationMs - 50); easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { spring: 5.4; damping: 0.25; epsilon: 0.001 } }
 
             Column {
                 id: volumePopupColumn
@@ -4154,7 +4154,7 @@ PanelWindow {
             width: parent.width
             y: networkPopupOpen ? 0 : -popupAnimationOffset
             opacity: networkPopupOpen ? 1 : 0
-            scale: networkPopupOpen ? 1 : 0.9
+            scale: networkPopupOpen ? 1 : 0.84
             transformOrigin: Item.Top
             implicitHeight: networkPopupColumn.implicitHeight + 24
             radius: 18
@@ -4162,9 +4162,9 @@ PanelWindow {
             border.color: popupBorderColor
             border.width: 1
 
-            Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }
-            Behavior on opacity { NumberAnimation { duration: Math.max(90, popupAnimationMs - 60); easing.type: Easing.OutQuad } }
-            Behavior on scale { SpringAnimation { spring: 3.4; damping: 0.34; epsilon: 0.001 } }
+            Behavior on y { SpringAnimation { spring: 5.0; damping: 0.24; epsilon: 0.12 } }
+            Behavior on opacity { NumberAnimation { duration: Math.max(130, popupAnimationMs - 50); easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { spring: 5.4; damping: 0.25; epsilon: 0.001 } }
 
             Column {
                 id: networkPopupColumn
@@ -4678,7 +4678,7 @@ PanelWindow {
             width: parent.width
             y: notificationCenterOpen ? 0 : -popupAnimationOffset
             opacity: notificationCenterOpen ? 1 : 0
-            scale: notificationCenterOpen ? 1 : 0.9
+            scale: notificationCenterOpen ? 1 : 0.84
             transformOrigin: Item.Top
             implicitHeight: Math.min(notificationColumn.implicitHeight + 24, 430)
             radius: 18
@@ -4687,9 +4687,9 @@ PanelWindow {
             border.width: 1
             clip: true
 
-            Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }
-            Behavior on opacity { NumberAnimation { duration: Math.max(90, popupAnimationMs - 60); easing.type: Easing.OutQuad } }
-            Behavior on scale { SpringAnimation { spring: 3.4; damping: 0.34; epsilon: 0.001 } }
+            Behavior on y { SpringAnimation { spring: 5.0; damping: 0.24; epsilon: 0.12 } }
+            Behavior on opacity { NumberAnimation { duration: Math.max(130, popupAnimationMs - 50); easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { spring: 5.4; damping: 0.25; epsilon: 0.001 } }
 
             Column {
                 id: notificationColumn
@@ -4920,7 +4920,7 @@ PanelWindow {
             width: parent.width
             y: performancePopupOpen ? 0 : -popupAnimationOffset
             opacity: performancePopupOpen ? 1 : 0
-            scale: performancePopupOpen ? 1 : 0.9
+            scale: performancePopupOpen ? 1 : 0.84
             transformOrigin: Item.Top
             implicitHeight: performanceColumn.implicitHeight + 24
             radius: 18
@@ -4928,9 +4928,9 @@ PanelWindow {
             border.color: popupBorderColor
             border.width: 1
 
-            Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }
-            Behavior on opacity { NumberAnimation { duration: Math.max(90, popupAnimationMs - 60); easing.type: Easing.OutQuad } }
-            Behavior on scale { SpringAnimation { spring: 3.4; damping: 0.34; epsilon: 0.001 } }
+            Behavior on y { SpringAnimation { spring: 5.0; damping: 0.24; epsilon: 0.12 } }
+            Behavior on opacity { NumberAnimation { duration: Math.max(130, popupAnimationMs - 50); easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { spring: 5.4; damping: 0.25; epsilon: 0.001 } }
 
             Column {
                 id: performanceColumn
@@ -5071,7 +5071,7 @@ PanelWindow {
             width: parent.width
             y: clockPopupOpen ? 0 : -popupAnimationOffset
             opacity: clockPopupOpen ? 1 : 0
-            scale: clockPopupOpen ? 1 : 0.9
+            scale: clockPopupOpen ? 1 : 0.84
             transformOrigin: Item.Top
             implicitHeight: clockPopupColumn.implicitHeight + 24
             radius: 18
@@ -5079,9 +5079,9 @@ PanelWindow {
             border.color: popupBorderColor
             border.width: 1
 
-            Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }
-            Behavior on opacity { NumberAnimation { duration: Math.max(90, popupAnimationMs - 60); easing.type: Easing.OutQuad } }
-            Behavior on scale { SpringAnimation { spring: 3.4; damping: 0.34; epsilon: 0.001 } }
+            Behavior on y { SpringAnimation { spring: 5.0; damping: 0.24; epsilon: 0.12 } }
+            Behavior on opacity { NumberAnimation { duration: Math.max(130, popupAnimationMs - 50); easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { spring: 5.4; damping: 0.25; epsilon: 0.001 } }
 
             Column {
                 id: clockPopupColumn

@@ -12,8 +12,8 @@ QtObject {
     property int traySpacing: 10
     property int groupSpacing: 6
     property int popupRadius: 18
-    property int popupAnimationMs: 190
-    property int popupAnimationOffset: 18
+    property int popupAnimationMs: 260
+    property int popupAnimationOffset: 32
     property int memoryPillWidth: 88
     property int cpuPillWidth: 82
     property int quickSettingsWidth: 390
@@ -67,7 +67,7 @@ QtObject {
     property int toastWidth: 360
     property int toastTopMargin: 66
     property int toastRadius: 20
-    property int toastAnimationMs: 210
+    property int toastAnimationMs: 260
     property int toastDurationMs: 1800
     property int toastProgressHeight: 5
 }

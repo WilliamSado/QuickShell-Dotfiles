@@ -31,9 +31,9 @@ Item {
         Rectangle {
             id: quickSettingsPanel
             width: parent.width
-            x: root.bar.quickSettingsOpen ? 0 : parent.width + 28
+            x: root.bar.quickSettingsOpen ? 0 : parent.width + root.bar.popupAnimationOffset
             opacity: root.bar.quickSettingsOpen ? 1 : 0
-            scale: root.bar.quickSettingsOpen ? 1 : 0.96
+            scale: root.bar.quickSettingsOpen ? 1 : 0.9
             transformOrigin: Item.Right
             implicitHeight: quickSettingsColumn.implicitHeight + 36
             radius: 24
@@ -41,9 +41,9 @@ Item {
             border.color: root.bar.popupBorderColor
             border.width: 1
 
-            Behavior on x { SpringAnimation { spring: 2.8; damping: 0.30; epsilon: 0.3 } }
-            Behavior on opacity { NumberAnimation { duration: Math.max(100, root.bar.popupAnimationMs - 40); easing.type: Easing.OutQuad } }
-            Behavior on scale { SpringAnimation { spring: 3.0; damping: 0.34; epsilon: 0.001 } }
+            Behavior on x { SpringAnimation { spring: 4.8; damping: 0.23; epsilon: 0.18 } }
+            Behavior on opacity { NumberAnimation { duration: Math.max(140, root.bar.popupAnimationMs - 40); easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { spring: 5.2; damping: 0.24; epsilon: 0.001 } }
 
             Column {
                 id: quickSettingsColumn

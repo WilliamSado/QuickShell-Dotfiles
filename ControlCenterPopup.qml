@@ -1034,7 +1034,7 @@ Item {
             width: parent.width
             y: root.bar.controlCenterOpen ? 0 : -root.bar.popupAnimationOffset
             opacity: root.bar.controlCenterOpen ? 1 : 0
-            scale: root.bar.controlCenterOpen ? 1 : 0.96
+            scale: root.bar.controlCenterOpen ? 1 : 0.88
             transformOrigin: Item.TopRight
             implicitHeight: controlCenterColumn.implicitHeight + 32
             radius: 22
@@ -1042,9 +1042,9 @@ Item {
             border.color: root.bar.popupBorderColor
             border.width: 1
 
-            Behavior on y { SpringAnimation { spring: 3.0; damping: 0.34; epsilon: 0.2 } }
-            Behavior on opacity { NumberAnimation { duration: Math.max(90, root.bar.popupAnimationMs - 50); easing.type: Easing.OutQuad } }
-            Behavior on scale { SpringAnimation { spring: 3.2; damping: 0.36; epsilon: 0.001 } }
+            Behavior on y { SpringAnimation { spring: 4.8; damping: 0.23; epsilon: 0.12 } }
+            Behavior on opacity { NumberAnimation { duration: Math.max(140, root.bar.popupAnimationMs - 40); easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { spring: 5.2; damping: 0.24; epsilon: 0.001 } }
 
             Column {
                 id: controlCenterColumn

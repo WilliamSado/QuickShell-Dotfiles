@@ -591,7 +591,7 @@ Rectangle {
                 ? numbers.musicPopupOffsetY
                 : numbers.musicPopupOffsetY - numbers.popupAnimationOffset
             opacity: root.popupOpen ? 1 : 0
-            scale: root.popupOpen ? 1 : 0.96
+            scale: root.popupOpen ? 1 : 0.88
             transformOrigin: Item.Top
             radius: numbers.popupRadius
             color: themePopupColor
@@ -599,9 +599,9 @@ Rectangle {
             border.width: 1
             clip: true
 
-            Behavior on y { SpringAnimation { spring: 3.2; damping: 0.32; epsilon: 0.2 } }
-            Behavior on opacity { NumberAnimation { duration: numbers.popupAnimationMs; easing.type: Easing.OutCubic } }
-            Behavior on scale { SpringAnimation { spring: 3.4; damping: 0.34; epsilon: 0.001 } }
+            Behavior on y { SpringAnimation { spring: 5.0; damping: 0.24; epsilon: 0.12 } }
+            Behavior on opacity { NumberAnimation { duration: Math.max(140, numbers.popupAnimationMs - 30); easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { spring: 5.4; damping: 0.25; epsilon: 0.001 } }
 
             MouseArea {
                 anchors.fill: parent
