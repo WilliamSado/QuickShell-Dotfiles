@@ -3139,7 +3139,7 @@ PanelWindow {
                 Flickable {
                     id: bluetoothDeviceFlick
                     width: parent.width
-                    height: Math.min(bluetoothDeviceList.implicitHeight, 5 * 38)
+                    height: Math.min(bluetoothDeviceList.implicitHeight, 5 * 34)
                     contentWidth: width
                     contentHeight: bluetoothDeviceList.implicitHeight
                     clip: true
@@ -3177,9 +3177,9 @@ PanelWindow {
 
                             Rectangle {
                                 width: bluetoothDeviceList.width
-                                height: 38
-                                radius: 12
-                                color: deviceMouse.containsMouse ? "#44282828" : "transparent"
+                                height: 34
+                                radius: 17
+                                color: modelData.connected ? activePillColor : deviceMouse.containsMouse ? "#4a282828" : pillColor
 
                                 RowLayout {
                                     anchors.fill: parent
@@ -3189,9 +3189,9 @@ PanelWindow {
 
                                     Text {
                                         text: modelData.connected ? "󰂱" : "󰂯"
-                                        color: modelData.connected ? bluetoothTextColor : mutedTextColor
+                                        color: bluetoothTextColor
                                         font.family: iconFont
-                                        font.pixelSize: 16
+                                        font.pixelSize: 14
                                         Layout.alignment: Qt.AlignVCenter
                                     }
 
@@ -3199,7 +3199,7 @@ PanelWindow {
                                         text: bluetoothDeviceName(modelData)
                                         color: textColor
                                         font.family: barFont
-                                        font.pixelSize: 14
+                                        font.pixelSize: 13
                                         elide: Text.ElideRight
                                         Layout.fillWidth: true
                                         Layout.alignment: Qt.AlignVCenter
@@ -3207,9 +3207,11 @@ PanelWindow {
 
                                     Text {
                                         text: bluetoothDeviceStatus(modelData)
-                                        color: modelData.connected ? bluetoothTextColor : mutedTextColor
+                                        color: mutedTextColor
                                         font.family: barFont
                                         font.pixelSize: 12
+                                        Layout.preferredWidth: 72
+                                        horizontalAlignment: Text.AlignRight
                                         Layout.alignment: Qt.AlignVCenter
                                     }
                                 }
@@ -4304,73 +4306,113 @@ PanelWindow {
                         horizontalAlignment: Text.AlignHCenter
                     }
 
-                    Repeater {
-                        model: wifiNetworksForDevice(networkPopupColumn.device)
+                    Flickable {
+                        id: wifiNetworkFlick
+                        width: parent.width
+                        height: Math.min(wifiNetworkList.implicitHeight, 5 * 34)
+                        contentWidth: width
+                        contentHeight: wifiNetworkList.implicitHeight
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+                        visible: networkPopupColumn.device
+                            && networkPopupColumn.device.type === DeviceType.Wifi
+                            && wifiNetworksForDevice(networkPopupColumn.device).length > 0
+
+                        WheelHandler {
+                            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                            onWheel: function(event) {
+                                wifiNetworkFlick.contentY = Math.max(0, Math.min(
+                                    wifiNetworkFlick.contentHeight - wifiNetworkFlick.height,
+                                    wifiNetworkFlick.contentY - event.angleDelta.y / 2
+                                ));
+                                event.accepted = true;
+                            }
+                        }
 
                         Rectangle {
-                            width: networkPopupColumn.width
-                            height: 34
-                            radius: 17
-                            color: modelData.connected ? activePillColor : networkMouse.containsMouse ? "#4a282828" : pillColor
+                            width: 3
+                            radius: 2
+                            anchors.right: parent.right
+                            anchors.rightMargin: 1
+                            y: wifiNetworkFlick.visibleArea.yPosition * wifiNetworkFlick.height
+                            height: Math.max(18, wifiNetworkFlick.visibleArea.heightRatio * wifiNetworkFlick.height)
+                            color: mutedTextColor
+                            opacity: wifiNetworkFlick.contentHeight > wifiNetworkFlick.height ? 0.45 : 0
+                        }
 
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 10
-                                anchors.rightMargin: 10
-                                spacing: 8
+                        Column {
+                            id: wifiNetworkList
+                            width: wifiNetworkFlick.width
 
-                                Text {
-                                    text: modelData.connected ? "" : ""
-                                    color: networkTextColor
-                                    font.family: iconFont
-                                    font.pixelSize: 14
-                                    Layout.alignment: Qt.AlignVCenter
+                            Repeater {
+                                model: wifiNetworksForDevice(networkPopupColumn.device)
+
+                                Rectangle {
+                                    width: wifiNetworkList.width
+                                    height: 34
+                                    radius: 17
+                                    color: modelData.connected ? activePillColor : networkMouse.containsMouse ? "#4a282828" : pillColor
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 10
+                                        anchors.rightMargin: 10
+                                        spacing: 8
+
+                                        Text {
+                                            text: modelData.connected ? "" : ""
+                                            color: networkTextColor
+                                            font.family: iconFont
+                                            font.pixelSize: 14
+                                            Layout.alignment: Qt.AlignVCenter
+                                        }
+
+                                        Text {
+                                            text: modelData.name || "Hidden network"
+                                            color: textColor
+                                            font.family: barFont
+                                            font.pixelSize: 13
+                                            elide: Text.ElideRight
+                                            Layout.fillWidth: true
+                                            Layout.alignment: Qt.AlignVCenter
+                                        }
+
+                                        Text {
+                                            text: wifiNetworkLockIcon(modelData)
+                                            color: mutedTextColor
+                                            font.family: iconFont
+                                            font.pixelSize: 12
+                                            Layout.alignment: Qt.AlignVCenter
+                                        }
+
+                                        Text {
+                                            text: Math.round(modelData.signalStrength) + "%"
+                                            color: networkTextColor
+                                            font.family: barFont
+                                            font.pixelSize: 12
+                                            Layout.preferredWidth: 40
+                                            horizontalAlignment: Text.AlignRight
+                                            Layout.alignment: Qt.AlignVCenter
+                                        }
+
+                                        Text {
+                                            text: wifiNetworkStatusText(modelData)
+                                            color: mutedTextColor
+                                            font.family: barFont
+                                            font.pixelSize: 12
+                                            Layout.preferredWidth: 72
+                                            horizontalAlignment: Text.AlignRight
+                                            Layout.alignment: Qt.AlignVCenter
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: networkMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        onClicked: connectWifiNetwork(modelData)
+                                    }
                                 }
-
-                                Text {
-                                    text: modelData.name || "Hidden network"
-                                    color: textColor
-                                    font.family: barFont
-                                    font.pixelSize: 13
-                                    elide: Text.ElideRight
-                                    Layout.fillWidth: true
-                                    Layout.alignment: Qt.AlignVCenter
-                                }
-
-                                Text {
-                                    text: wifiNetworkLockIcon(modelData)
-                                    color: mutedTextColor
-                                    font.family: iconFont
-                                    font.pixelSize: 12
-                                    Layout.alignment: Qt.AlignVCenter
-                                }
-
-                                Text {
-                                    text: Math.round(modelData.signalStrength) + "%"
-                                    color: networkTextColor
-                                    font.family: barFont
-                                    font.pixelSize: 12
-                                    Layout.preferredWidth: 40
-                                    horizontalAlignment: Text.AlignRight
-                                    Layout.alignment: Qt.AlignVCenter
-                                }
-
-                                Text {
-                                    text: wifiNetworkStatusText(modelData)
-                                    color: mutedTextColor
-                                    font.family: barFont
-                                    font.pixelSize: 12
-                                    Layout.preferredWidth: 72
-                                    horizontalAlignment: Text.AlignRight
-                                    Layout.alignment: Qt.AlignVCenter
-                                }
-                            }
-
-                            MouseArea {
-                                id: networkMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onClicked: connectWifiNetwork(modelData)
                             }
                         }
                     }
