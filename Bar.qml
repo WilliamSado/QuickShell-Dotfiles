@@ -3612,45 +3612,73 @@ PanelWindow {
                     horizontalAlignment: Text.AlignHCenter
                 }
 
-                Repeater {
-                    model: audioOutputsExpanded ? audioSinks() : []
+                Flickable {
+                    id: audioOutputFlick
+                    width: parent.width
+                    height: Math.min(audioOutputList.implicitHeight, 5 * 34 + 4 * 6)
+                    contentWidth: width
+                    contentHeight: audioOutputList.implicitHeight
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    visible: audioOutputsExpanded && audioSinks().length > 0
 
-                    Rectangle {
-                        width: volumePopupColumn.width
-                        height: 38
-                        radius: 12
-                        color: isDefaultAudioSink(modelData) ? activePillColor : (sinkMouse.containsMouse ? "#44282828" : "transparent")
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 10
-                            anchors.rightMargin: 10
-                            spacing: 8
-
-                            Text {
-                                text: isDefaultAudioSink(modelData) ? "" : "󰓃"
-                                color: isDefaultAudioSink(modelData) ? audioTextColor : mutedTextColor
-                                font.family: iconFont
-                                font.pixelSize: 15
-                                Layout.alignment: Qt.AlignVCenter
-                            }
-
-                            Text {
-                                text: audioSinkName(modelData)
-                                color: textColor
-                                font.family: barFont
-                                font.pixelSize: 13
-                                elide: Text.ElideRight
-                                Layout.fillWidth: true
-                                Layout.alignment: Qt.AlignVCenter
-                            }
+                    WheelHandler {
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                        onWheel: function(event) {
+                            audioOutputFlick.contentY = Math.max(0, Math.min(
+                                audioOutputFlick.contentHeight - audioOutputFlick.height,
+                                audioOutputFlick.contentY - event.angleDelta.y / 2
+                            ));
+                            event.accepted = true;
                         }
+                    }
 
-                        MouseArea {
-                            id: sinkMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: setDefaultAudioSink(modelData)
+                    Column {
+                        id: audioOutputList
+                        width: audioOutputFlick.width
+                        spacing: 6
+
+                        Repeater {
+                            model: audioOutputsExpanded ? audioSinks() : []
+
+                            Rectangle {
+                                width: audioOutputList.width
+                                height: 34
+                                radius: 17
+                                color: isDefaultAudioSink(modelData) ? activePillColor : (sinkMouse.containsMouse ? "#4a282828" : pillColor)
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
+                                    spacing: 8
+
+                                    Text {
+                                        text: isDefaultAudioSink(modelData) ? "" : "󰓃"
+                                        color: audioTextColor
+                                        font.family: iconFont
+                                        font.pixelSize: 14
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+
+                                    Text {
+                                        text: audioSinkName(modelData)
+                                        color: textColor
+                                        font.family: barFont
+                                        font.pixelSize: 13
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: sinkMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: setDefaultAudioSink(modelData)
+                                }
+                            }
                         }
                     }
                 }
@@ -3769,45 +3797,83 @@ PanelWindow {
                     }
                 }
 
-                Repeater {
-                    model: audioInputsExpanded ? audioSources() : []
+                Text {
+                    width: parent.width
+                    visible: audioInputsExpanded && audioSources().length === 0
+                    text: "No input devices"
+                    color: mutedTextColor
+                    font.family: barFont
+                    font.pixelSize: 13
+                    horizontalAlignment: Text.AlignHCenter
+                }
 
-                    Rectangle {
-                        width: volumePopupColumn.width
-                        height: 38
-                        radius: 12
-                        color: isDefaultAudioSource(modelData) ? activePillColor : (sourceMouse.containsMouse ? "#44282828" : "transparent")
+                Flickable {
+                    id: audioInputFlick
+                    width: parent.width
+                    height: Math.min(audioInputList.implicitHeight, 5 * 34 + 4 * 6)
+                    contentWidth: width
+                    contentHeight: audioInputList.implicitHeight
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    visible: audioInputsExpanded && audioSources().length > 0
 
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 10
-                            anchors.rightMargin: 10
-                            spacing: 8
-
-                            Text {
-                                text: isDefaultAudioSource(modelData) ? "" : ""
-                                color: isDefaultAudioSource(modelData) ? audioTextColor : mutedTextColor
-                                font.family: iconFont
-                                font.pixelSize: 15
-                                Layout.alignment: Qt.AlignVCenter
-                            }
-
-                            Text {
-                                text: audioSourceName(modelData)
-                                color: textColor
-                                font.family: barFont
-                                font.pixelSize: 13
-                                elide: Text.ElideRight
-                                Layout.fillWidth: true
-                                Layout.alignment: Qt.AlignVCenter
-                            }
+                    WheelHandler {
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                        onWheel: function(event) {
+                            audioInputFlick.contentY = Math.max(0, Math.min(
+                                audioInputFlick.contentHeight - audioInputFlick.height,
+                                audioInputFlick.contentY - event.angleDelta.y / 2
+                            ));
+                            event.accepted = true;
                         }
+                    }
 
-                        MouseArea {
-                            id: sourceMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: setDefaultAudioSource(modelData)
+                    Column {
+                        id: audioInputList
+                        width: audioInputFlick.width
+                        spacing: 6
+
+                        Repeater {
+                            model: audioInputsExpanded ? audioSources() : []
+
+                            Rectangle {
+                                width: audioInputList.width
+                                height: 34
+                                radius: 17
+                                color: isDefaultAudioSource(modelData) ? activePillColor : (sourceMouse.containsMouse ? "#4a282828" : pillColor)
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
+                                    spacing: 8
+
+                                    Text {
+                                        text: isDefaultAudioSource(modelData) ? "" : ""
+                                        color: audioTextColor
+                                        font.family: iconFont
+                                        font.pixelSize: 14
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+
+                                    Text {
+                                        text: audioSourceName(modelData)
+                                        color: textColor
+                                        font.family: barFont
+                                        font.pixelSize: 13
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: sourceMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: setDefaultAudioSource(modelData)
+                                }
+                            }
                         }
                     }
                 }
@@ -3872,111 +3938,139 @@ PanelWindow {
                     horizontalAlignment: Text.AlignHCenter
                 }
 
-                Repeater {
-                    model: appAudioExpanded ? appAudioStreams : []
+                Flickable {
+                    id: appAudioFlick
+                    width: parent.width
+                    height: Math.min(appAudioList.implicitHeight, 5 * 54 + 4 * 6)
+                    contentWidth: width
+                    contentHeight: appAudioList.implicitHeight
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    visible: appAudioExpanded && appAudioStreams.length > 0
 
-                    Rectangle {
-                        id: appAudioCard
-                        property var streamData: modelData
+                    WheelHandler {
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                        onWheel: function(event) {
+                            appAudioFlick.contentY = Math.max(0, Math.min(
+                                appAudioFlick.contentHeight - appAudioFlick.height,
+                                appAudioFlick.contentY - event.angleDelta.y / 2
+                            ));
+                            event.accepted = true;
+                        }
+                    }
 
-                        width: volumePopupColumn.width
-                        height: 54
-                        radius: 12
-                        color: appAudioMouse.containsMouse ? "#44282828" : "transparent"
+                    Column {
+                        id: appAudioList
+                        width: appAudioFlick.width
+                        spacing: 6
 
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 10
-                            anchors.rightMargin: 10
-                            spacing: 8
+                        Repeater {
+                            model: appAudioExpanded ? appAudioStreams : []
 
-                            Text {
-                                text: modelData.muted ? "󰝟" : "󰝚"
-                                color: modelData.muted ? mutedTextColor : audioTextColor
-                                font.family: iconFont
-                                font.pixelSize: 15
-                                Layout.alignment: Qt.AlignVCenter
-                            }
+                            Rectangle {
+                                id: appAudioCard
+                                property var streamData: modelData
 
-                            Column {
-                                Layout.fillWidth: true
-                                Layout.alignment: Qt.AlignVCenter
-                                spacing: 2
+                                width: appAudioList.width
+                                height: 54
+                                radius: 17
+                                color: appAudioMouse.containsMouse ? "#4a282828" : pillColor
 
-                                Text {
-                                    width: parent.width
-                                    text: modelData.name
-                                    color: textColor
-                                    font.family: barFont
-                                    font.pixelSize: 12
-                                    elide: Text.ElideRight
-                                }
-
-                                Rectangle {
-                                    width: parent.width
-                                    height: 6
-                                    radius: 3
-                                    color: "#24ffffff"
-
-                                    Rectangle {
-                                        width: parent.width * Math.min(modelData.percent, 100) / 100
-                                        height: parent.height
-                                        radius: parent.radius
-                                        color: modelData.muted ? mutedTextColor : audioTextColor
-                                    }
-                                }
-                            }
-
-                            Text {
-                                text: modelData.percent + "%"
-                                color: audioTextColor
-                                font.family: barFont
-                                font.pixelSize: 11
-                                Layout.preferredWidth: 34
-                                horizontalAlignment: Text.AlignRight
-                                Layout.alignment: Qt.AlignVCenter
-                            }
-
-                            Repeater {
-                                model: [
-                                    { label: "-", action: "down" },
-                                    { label: "+", action: "up" },
-                                    { label: modelData.muted ? "on" : "off", action: "mute" }
-                                ]
-
-                                Rectangle {
-                                    Layout.preferredWidth: modelData.action === "mute" ? 34 : 24
-                                    Layout.preferredHeight: 26
-                                    radius: 13
-                                    color: appAudioActionMouse.containsMouse ? activePillColor : pillColor
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
+                                    spacing: 8
 
                                     Text {
-                                        anchors.centerIn: parent
-                                        text: modelData.label
+                                        text: modelData.muted ? "󰝟" : "󰝚"
+                                        color: modelData.muted ? mutedTextColor : audioTextColor
+                                        font.family: iconFont
+                                        font.pixelSize: 15
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+
+                                    Column {
+                                        Layout.fillWidth: true
+                                        Layout.alignment: Qt.AlignVCenter
+                                        spacing: 2
+
+                                        Text {
+                                            width: parent.width
+                                            text: modelData.name
+                                            color: textColor
+                                            font.family: barFont
+                                            font.pixelSize: 12
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Rectangle {
+                                            width: parent.width
+                                            height: 6
+                                            radius: 3
+                                            color: "#24ffffff"
+
+                                            Rectangle {
+                                                width: parent.width * Math.min(modelData.percent, 100) / 100
+                                                height: parent.height
+                                                radius: parent.radius
+                                                color: modelData.muted ? mutedTextColor : audioTextColor
+                                            }
+                                        }
+                                    }
+
+                                    Text {
+                                        text: modelData.percent + "%"
                                         color: audioTextColor
                                         font.family: barFont
                                         font.pixelSize: 11
+                                        Layout.preferredWidth: 34
+                                        horizontalAlignment: Text.AlignRight
+                                        Layout.alignment: Qt.AlignVCenter
                                     }
 
-                                    MouseArea {
-                                        id: appAudioActionMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        onClicked: {
-                                            if (modelData.action === "down") adjustAppAudioVolume(appAudioCard.streamData, -5);
-                                            else if (modelData.action === "up") adjustAppAudioVolume(appAudioCard.streamData, 5);
-                                            else if (modelData.action === "mute") toggleAppAudioMute(appAudioCard.streamData);
+                                    Repeater {
+                                        model: [
+                                            { label: "-", action: "down" },
+                                            { label: "+", action: "up" },
+                                            { label: modelData.muted ? "on" : "off", action: "mute" }
+                                        ]
+
+                                        Rectangle {
+                                            Layout.preferredWidth: modelData.action === "mute" ? 34 : 24
+                                            Layout.preferredHeight: 26
+                                            radius: 13
+                                            color: appAudioActionMouse.containsMouse ? activePillColor : pillColor
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: modelData.label
+                                                color: audioTextColor
+                                                font.family: barFont
+                                                font.pixelSize: 11
+                                            }
+
+                                            MouseArea {
+                                                id: appAudioActionMouse
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                onClicked: {
+                                                    if (modelData.action === "down") adjustAppAudioVolume(appAudioCard.streamData, -5);
+                                                    else if (modelData.action === "up") adjustAppAudioVolume(appAudioCard.streamData, 5);
+                                                    else if (modelData.action === "mute") toggleAppAudioMute(appAudioCard.streamData);
+                                                }
+                                            }
                                         }
                                     }
                                 }
-                            }
-                        }
 
-                        MouseArea {
-                            id: appAudioMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            acceptedButtons: Qt.NoButton
+                                MouseArea {
+                                    id: appAudioMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    acceptedButtons: Qt.NoButton
+                                }
+                            }
                         }
                     }
                 }
